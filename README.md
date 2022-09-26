@@ -12,3 +12,6 @@ speeches? What emotion correlates with conditions like
 depression, PTSD etc, anger, sadness?
 
 depression data set: https://www.kaggle.com/datasets/arashnic/the-depression-dataset
+
+huggingface search - classifier
+https://huggingface.co/models?pipeline_tag=text-classification&sort=downloads&search=emotion
