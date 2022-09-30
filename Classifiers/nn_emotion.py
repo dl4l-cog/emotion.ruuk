@@ -1,6 +1,7 @@
 
 
 #from cgi import test
+from cProfile import label
 import csv
 import numpy as np
 import tensorflow as tf
@@ -123,7 +124,7 @@ class Net(nn.Module):
         #self.dout3 = nn.Dropout(0.2)
         self.fc4 = nn.Linear(1024, 64)
         self.prelu = nn.PReLU(1)
-        self.out = nn.Linear(64, 1)
+        self.out = nn.Linear(64, 5)
         self.out_act = nn.Sigmoid()
         
     def forward(self, input_):
@@ -143,13 +144,13 @@ class Net(nn.Module):
         return y
         
 model = Net()
-# Define loss function
-#print("y shape:", y.shape)
-loss_fn = nn.CrossEntropyLoss()
 
+
+# Define loss function
+loss_fn = nn.CrossEntropyLoss()
 # Loss before training
 #print("loss before training: ")
-#loss = nn.BCELoss(model(trn_x_tensor), y)
+
 
 
 # Define optimizer
@@ -164,11 +165,12 @@ def fit(num_epochs, model, loss_fn, opt, train_dl):
         
         # Train with batches of data
         for xb,yb in train_dl:
-            
+            #setting right dtype for loss_fn (long required)
+            yb = torch.tensor(yb, dtype=torch.long)
+
             # 1. Generate predictions
             pred = model(xb)
-            pred = torch.transpose(pred, 1, 0)[0]
-            
+        
             # 2. Calculate loss
             loss = loss_fn(pred, yb)
             
