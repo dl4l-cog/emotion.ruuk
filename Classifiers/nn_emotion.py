@@ -66,11 +66,11 @@ tst_shape = tst_x_coo.shape
 #Making the test and train tensors for the text
 trn_x_tensor = torch.sparse.FloatTensor(trn_i, trn_v, torch.Size(trn_shape))
 tst_x_tensor = torch.sparse.FloatTensor(tst_i, tst_v, torch.Size(tst_shape))
-#print(trn_x_tensor.shape)
+
 
 #Making y which is the tensor of emotion labels
 y = torch.tensor(test_label)
-print(y)
+
 
 
 
@@ -116,27 +116,27 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(trn_x_tensor.shape[1] , 1024)
         self.relu1 = nn.ReLU()
         self.dout1 = nn.Dropout(0.25)
-        #self.fc2 = nn.Linear(1024, 2048)
-        #self.relu2 = nn.ReLU()
-        #self.dout2 = nn.Dropout(0.25)
-        #self.fc3 = nn.Linear(2048, 512)
-        #self.relu3 = nn.ReLU()
-        #self.dout3 = nn.Dropout(0.2)
+        self.fc2 = nn.Linear(1024, 2048)
+        self.relu2 = nn.ReLU()
+        self.dout2 = nn.Dropout(0.25)
+        self.fc3 = nn.Linear(2048, 1024)
+        self.relu3 = nn.ReLU()
+        self.dout3 = nn.Dropout(0.2)
         self.fc4 = nn.Linear(1024, 64)
         self.prelu = nn.PReLU(1)
-        self.out = nn.Linear(64, 5)
+        self.out = nn.Linear(64, 6)
         self.out_act = nn.Sigmoid()
         
     def forward(self, input_):
         a1 = self.fc1(input_)
         h1 = self.relu1(a1)
         dout1 = self.dout1(h1)
-        #a2 = self.fc2(dout1)
-        #h2 = self.relu2(a2)
-        #dout2 = self.dout2(h2)
-        #a3 = self.fc3(dout2)
-        #h3 = self.relu3(a3)
-        #dout3 = self.dout3(h3)
+        a2 = self.fc2(dout1)
+        h2 = self.relu2(a2)
+        dout2 = self.dout2(h2)
+        a3 = self.fc3(dout2)
+        h3 = self.relu3(a3)
+        dout3 = self.dout3(h3)
         a4 = self.fc4(dout1)
         h4 = self.prelu(a4)
         a5 = self.out(h4)
@@ -170,7 +170,7 @@ def fit(num_epochs, model, loss_fn, opt, train_dl):
 
             # 1. Generate predictions
             pred = model(xb)
-        
+            
             # 2. Calculate loss
             loss = loss_fn(pred, yb)
             
@@ -187,17 +187,18 @@ def fit(num_epochs, model, loss_fn, opt, train_dl):
         if (epoch+1) % 1 == 0:
             print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, loss.item()))
 
-epochs = 35 #if choosing smaller batches go for less epochs
+epochs = 100 #if choosing smaller batches go for less epochs
 fit(epochs, model, loss_fn, opt, train_dl)
 torch.save(model, "model.pth")
 #model = torch.load("model.pth")
-pred_train = model(trn_x_tensor)
+
+pred_test = model(tst_x_tensor)
 
 
 
-p = precision(pred_train, y, num_classes=1)
-r = recall(pred_train, y, num_classes=1)
-f1 = f1_score(pred_train, y, num_classes=1)
+p = precision(pred_test, y, num_classes=6)
+r = recall(pred_test, y, num_classes=6)
+f1 = f1_score(pred_test, y, num_classes=6)
 
 
 print("F1-score:", f1)
