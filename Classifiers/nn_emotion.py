@@ -2,16 +2,15 @@
 
 #from cgi import test
 from cProfile import label
-import csv
+#import csv
 import numpy as np
-import tensorflow as tf
-import csv
-from sklearn.linear_model import LogisticRegression
+#import tensorflow as tf
+#from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.metrics import precision_recall_fscore_support
-from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
-import pandas as pd
+#from sklearn.metrics import precision_recall_fscore_support
+#from sklearn.model_selection import train_test_split
+#from sklearn.feature_extraction.text import TfidfVectorizer
+#import pandas as pd
 from scipy.sparse import coo_matrix
 import torch
 import torch.nn as nn
@@ -20,7 +19,7 @@ from torch.utils.data import Dataset
 from torchmetrics.functional import f1_score
 from torchmetrics.functional import precision
 from torchmetrics.functional import recall
-from sklearn.preprocessing import LabelBinarizer
+#from sklearn.preprocessing import LabelBinarizer
 
 
 from datasets import load_dataset
@@ -206,27 +205,3 @@ print("Precision:", p)
 print("Recall:", r)
 
 
-"""
-pred_test = model(tst_x_tensor)
-pred_test = pred_test.detach().numpy()
-
-
-test_predictions = []
-
-for i in range(pred_test.shape[0]): 
-    if ( pred_test[i, 0] < 0.5):
-        test_predictions.append("male")
-    else:
-        #print("FEMALE:",pred_test[i, 0])
-        test_predictions.append("female")
-
-#print(test_predictions)
-
-
-with open('a2-baseline.predictions', 'wt') as f:
-    print("id\tage", file=f)
-    for id, pred in zip(tst_id, test_predictions):
-        print(f"{id}\t{pred}", file=f)
-
-
-"""
