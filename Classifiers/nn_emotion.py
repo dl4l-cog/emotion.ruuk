@@ -186,7 +186,7 @@ def fit(num_epochs, model, loss_fn, opt, train_dl):
         if (epoch+1) % 1 == 0:
             print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, loss.item()))
 
-epochs = 100 #if choosing smaller batches go for less epochs
+epochs = 200 #if choosing smaller batches go for less epochs
 fit(epochs, model, loss_fn, opt, train_dl)
 torch.save(model, "model.pth")
 #model = torch.load("model.pth")
