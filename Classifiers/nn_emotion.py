@@ -121,7 +121,10 @@ class Net(nn.Module):
         self.fc3 = nn.Linear(2048, 1024)
         self.relu3 = nn.ReLU()
         self.dout3 = nn.Dropout(0.2)
-        self.fc4 = nn.Linear(1024, 64)
+        self.fc4 = nn.Linear(1024, 1024)
+        self.relu4 = nn.ReLU()
+        self.dout4 = nn.Dropout(0.2)
+        self.fc5 = nn.Linear(1024, 64)
         self.prelu = nn.PReLU(1)
         self.out = nn.Linear(64, 6)
         self.out_act = nn.Sigmoid()
@@ -136,10 +139,13 @@ class Net(nn.Module):
         a3 = self.fc3(dout2)
         h3 = self.relu3(a3)
         dout3 = self.dout3(h3)
-        a4 = self.fc4(dout1)
-        h4 = self.prelu(a4)
-        a5 = self.out(h4)
-        y = self.out_act(a5)
+        a4 = self.fc4(dout3)
+        h4 = self.relu4(a3)
+        dout4 = self.dout4(h3)
+        a5 = self.fc5(dout1)
+        h5 = self.prelu(a5)
+        a6 = self.out(h5)
+        y = self.out_act(a6)
         return y
         
 model = Net()
@@ -153,7 +159,7 @@ loss_fn = nn.CrossEntropyLoss()
 
 
 # Define optimizer
-opt = torch.optim.Adam(model.parameters(), lr=1e-5)
+opt = torch.optim.Adam(model.parameters(), lr=1e-5, weight_decay=1e-5)
 
 
 # Utility function to train the model
@@ -186,7 +192,7 @@ def fit(num_epochs, model, loss_fn, opt, train_dl):
         if (epoch+1) % 1 == 0:
             print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, loss.item()))
 
-epochs = 200 #if choosing smaller batches go for less epochs
+epochs = 600 #if choosing smaller batches go for less epochs
 fit(epochs, model, loss_fn, opt, train_dl)
 torch.save(model, "model.pth")
 #model = torch.load("model.pth")
