@@ -1,5 +1,6 @@
 #from cgi import test
 from cProfile import label
+from matplotlib.pyplot import text
 #import csv
 import numpy as np
 #import tensorflow as tf
@@ -37,33 +38,44 @@ train_label = convert(train, 'label')
 test_text = convert(test, 'text')
 test_label = convert(test, 'label')
 
-
-# Vec transform the text with count vectorizer
 vec = CountVectorizer(ngram_range=(1,1), lowercase=True)
 trn_x = vec.fit_transform(train_text)
-tst_x = vec.transform(test_text)
 
+def text_to_sparse(list_of_text):
+    # Vec transform the text with count vectorizer
+    #vec = CountVectorizer(ngram_range=(1,1), lowercase=True)
+    
+    #tst_x = vec.transform(list_of_text)
+    text_x = vec.transform(list_of_text)
+    # Convert csr matrices to sparse format
+    #trn_x_coo = coo_matrix(trn_x)
+    #tst_x_coo = coo_matrix(tst_x)
+    text_x_coo= coo_matrix(text_x)
 
-# Convert csr matrices to sparse format
-trn_x_coo = coo_matrix(trn_x)
-tst_x_coo = coo_matrix(tst_x)
+    #trn_values = trn_x_coo.data
+    #trn_indices = np.vstack((trn_x_coo.row, trn_x_coo.col))
+    #tst_values = tst_x_coo.data
+    #tst_indices = np.vstack((txt_x_coo.row, tst_x_coo.col))
+    text_values = text_x_coo.data
+    text_indices = np.vstack((text_x_coo.row, text_x_coo.col))
 
-trn_values = trn_x_coo.data
-trn_indices = np.vstack((trn_x_coo.row, trn_x_coo.col))
-tst_values = tst_x_coo.data
-tst_indices = np.vstack((tst_x_coo.row, tst_x_coo.col))
+    #trn_i = torch.LongTensor(trn_indices)
+    #trn_v = torch.FloatTensor(trn_values)
+    #trn_shape = trn_x_coo.shape
+    #tst_i = torch.LongTensor(tst_indices)
+    #tst_v = torch.FloatTensor(tst_values)
+    #tst_shape = tst_x_coo.shape
+    text_i = torch.LongTensor(text_indices)
+    text_v = torch.FloatTensor(text_values)
+    text_shape = text_x_coo.shape
+    #Making the test and train tensors for the text
+    #trn_x_tensor = torch.sparse.FloatTensor(trn_i, trn_v, torch.Size(trn_shape))
+    #tst_x_tensor = torch.sparse.FloatTensor(tst_i, tst_v, torch.Size(tst_shape))
+    text_x_tensor = torch.sparse.FloatTensor(text_i, text_v, torch.Size(text_shape))
+    return text_x_tensor
 
-trn_i = torch.LongTensor(trn_indices)
-trn_v = torch.FloatTensor(trn_values)
-trn_shape = trn_x_coo.shape
-tst_i = torch.LongTensor(tst_indices)
-tst_v = torch.FloatTensor(tst_values)
-tst_shape = tst_x_coo.shape
-
-#Making the test and train tensors for the text
-trn_x_tensor = torch.sparse.FloatTensor(trn_i, trn_v, torch.Size(trn_shape))
-tst_x_tensor = torch.sparse.FloatTensor(tst_i, tst_v, torch.Size(tst_shape))
-
+trn_x_tensor = text_to_sparse(train_text)
+tst_x_tensor = text_to_sparse(test_text)
 #Making y which is the tensor of emotion labels
 y = torch.tensor(train_label)
 y_test = torch.tensor(test_label)
@@ -98,7 +110,7 @@ class SparseDataset(Dataset):
         return obs,self.label[idx]
 
 train_ds = SparseDataset(trn_x, y)
-train_ds = SparseDataset(trn_x, y)
+
 
 # Define Dataloader
 batch_size = 1000 #batchsize depends on available memory
@@ -155,7 +167,7 @@ loss_fn = nn.CrossEntropyLoss()
 
 
 # Define optimizer
-opt = torch.optim.Adam(model.parameters(), lr=1e-5, weight_decay=1e-5)
+opt = torch.optim.Adam(model.parameters(), lr=1e-5, weight_decay=1e-4)
 
 
 # Utility function to train the model
