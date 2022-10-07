@@ -30,7 +30,7 @@ test = load_dataset('emotion', split='train')
 #Umnformatierung von dictionary in pd dataframe
 def convert(data_from_dict, split):
     list = []
-    for i in range(len(train)):
+    for i in range(len(data_from_dict)):
         list.append(data_from_dict[i][split])
     return list
 
@@ -68,8 +68,8 @@ tst_x_tensor = torch.sparse.FloatTensor(tst_i, tst_v, torch.Size(tst_shape))
 
 
 #Making y which is the tensor of emotion labels
-y = torch.tensor(test_label)
-
+y = torch.tensor(train_label)
+y_test = torch.tensor(test_label)
 
 
 
@@ -102,6 +102,7 @@ class SparseDataset(Dataset):
 
         return obs,self.label[idx]
 
+train_ds = SparseDataset(trn_x, y)
 train_ds = SparseDataset(trn_x, y)
 
 # Define Dataloader
@@ -139,9 +140,9 @@ class Net(nn.Module):
         a3 = self.fc3(dout2)
         h3 = self.relu3(a3)
         dout3 = self.dout3(h3)
-        a4 = self.fc4(dout3)
-        h4 = self.relu4(a3)
-        dout4 = self.dout4(h3)
+        #a4 = self.fc4(dout3)
+        #h4 = self.relu4(a3)
+        #dout4 = self.dout4(h3)
         a5 = self.fc5(dout1)
         h5 = self.prelu(a5)
         a6 = self.out(h5)
@@ -192,18 +193,18 @@ def fit(num_epochs, model, loss_fn, opt, train_dl):
         if (epoch+1) % 1 == 0:
             print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, loss.item()))
 
-epochs = 600 #if choosing smaller batches go for less epochs
-fit(epochs, model, loss_fn, opt, train_dl)
-torch.save(model, "model.pth")
-#model = torch.load("model.pth")
+epochs = 700 #if choosing smaller batches go for less epochs
+#fit(epochs, model, loss_fn, opt, train_dl)
+#torch.save(model, "model.pth")
+model = torch.load("model700e_1e-4wd.pth")
 
 pred_test = model(tst_x_tensor)
 
 
 
-p = precision(pred_test, y, num_classes=6)
-r = recall(pred_test, y, num_classes=6)
-f1 = f1_score(pred_test, y, num_classes=6)
+p = precision(pred_test, y_test, num_classes=6)
+r = recall(pred_test, y_test, num_classes=6)
+f1 = f1_score(pred_test, y_test, num_classes=6)
 
 
 print("F1-score:", f1)
