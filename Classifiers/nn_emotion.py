@@ -1,5 +1,3 @@
-
-
 #from cgi import test
 from cProfile import label
 #import csv
@@ -25,9 +23,9 @@ from torchmetrics.functional import recall
 from datasets import load_dataset
 #Daten laden aus huggingface
 train = load_dataset('emotion', split='train')
-test = load_dataset('emotion', split='train')
+test  = load_dataset('emotion', split='test')
 
-#Umnformatierung von dictionary in pd dataframe
+#Umformatierung von dictionary in pd dataframe
 def convert(data_from_dict, split):
     list = []
     for i in range(len(data_from_dict)):
@@ -66,13 +64,11 @@ tst_shape = tst_x_coo.shape
 trn_x_tensor = torch.sparse.FloatTensor(trn_i, trn_v, torch.Size(trn_shape))
 tst_x_tensor = torch.sparse.FloatTensor(tst_i, tst_v, torch.Size(tst_shape))
 
-
 #Making y which is the tensor of emotion labels
 y = torch.tensor(train_label)
 y_test = torch.tensor(test_label)
 
-
-
+#Setup CUDA if available, else CPU
 print("cudNN Version", torch.backends.cudnn.version())
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
@@ -80,7 +76,6 @@ print(f"Using {device} device")
 
 # Creating Dataset
 class SparseDataset(Dataset):
-
     def __init__(self, mat_csc, label, device="cpu"):
         self.dim = mat_csc.shape
         self.device = torch.device(device)
@@ -148,7 +143,8 @@ class Net(nn.Module):
         a6 = self.out(h5)
         y = self.out_act(a6)
         return y
-        
+
+#Initialize model      
 model = Net()
 
 
@@ -158,55 +154,41 @@ loss_fn = nn.CrossEntropyLoss()
 #print("loss before training: ")
 
 
-
 # Define optimizer
 opt = torch.optim.Adam(model.parameters(), lr=1e-5, weight_decay=1e-5)
 
 
 # Utility function to train the model
 def fit(num_epochs, model, loss_fn, opt, train_dl):
-    
     # Repeat for given number of epochs
     for epoch in range(num_epochs):
-        
         # Train with batches of data
         for xb,yb in train_dl:
-            #setting right dtype for loss_fn (long required)
-            yb = torch.tensor(yb, dtype=torch.long)
-
-            # 1. Generate predictions
-            pred = model(xb)
-            
-            # 2. Calculate loss
-            loss = loss_fn(pred, yb)
-            
-            # 3. Compute gradients
-            loss.backward()
-            
-            # 4. Update parameters using gradients
-            opt.step()
-            
-            # 5. Reset the gradients to zero
-            opt.zero_grad()
+            yb = torch.tensor(yb, dtype=torch.long) # 0. setting right dtype for loss_fn (long required)
+            pred = model(xb)                        # 1. Generate predictions
+            loss = loss_fn(pred, yb)                # 2. Calculate loss
+            loss.backward()                         # 3. Compute gradients
+            opt.step()                              # 4. Update parameters using gradients
+            opt.zero_grad()                         # 5. Reset the gradients to zero
         
         # Print the progress
         if (epoch+1) % 1 == 0:
             print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, loss.item()))
 
+# FIT THE MODEL
 epochs = 700 #if choosing smaller batches go for less epochs
 #fit(epochs, model, loss_fn, opt, train_dl)
 #torch.save(model, "model.pth")
 model = torch.load("model700e_1e-4wd.pth")
 
+
+# TEST THE MODEL
 pred_test = model(tst_x_tensor)
 
-
-
-p = precision(pred_test, y_test, num_classes=6)
-r = recall(pred_test, y_test, num_classes=6)
-f1 = f1_score(pred_test, y_test, num_classes=6)
-
-
+# Print results
+p  = precision(pred_test, y_test, num_classes=6)
+r  =    recall(pred_test, y_test, num_classes=6)
+f1 =  f1_score(pred_test, y_test, num_classes=6)
 print("F1-score:", f1)
 print("Precision:", p)
 print("Recall:", r)
