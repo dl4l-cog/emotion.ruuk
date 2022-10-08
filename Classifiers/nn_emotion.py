@@ -27,11 +27,7 @@ from datasets import load_dataset
 #Daten laden aus huggingface
 train = load_dataset('emotion', split='train')
 test  = load_dataset('emotion', split='test')
-sample = ['''A Woman's Story, A Man's Place, and Simple Passion were recognised as The New York Times Notable Books,[19] and A Woman's Story was a finalist for the Los Angeles Times Book Prize.[20] Shame was named a Publishers Weekly Best Book of 1998,[21] I Remain in Darkness a Top Memoir of 1999 by The Washington Post, and The Possession was listed as a Top Ten Book of 2008 by More magazine.[22]
-
-Her 2008 historical memoir Les Années (The Years), well-received by French critics, is considered by many to be her magnum opus.[23] In this book, Ernaux writes about herself in the third person ('elle', or 'she' in English) for the first time, providing a vivid look at French society just after the Second World War until the early 2000s.[24] It is the story of a woman and of the evolving society she lived in. The Years won the 2008 Prix François-Mauriac de la région Aquitaine [fr],[25] the 2008 Marguerite Duras Prize,[26] the 2008 Prix de la langue française, the 2009 Télégramme Readers Prize, and the 2016 Strega European Prize. Translated by Alison L. Strayer, The Years was a finalist for the 31st Annual French-American Foundation Translation Prize, was nominated for the International Booker Prize in 2019,[27] and won the 2019 Warwick Prize for Women in Translation.[9][28] Her popularity in anglophone countries increased sharply after The Years was shortlisted for the International Booker.[29]
-
-On 6 October 2022, it was announced that she was to be awarded the 2022 Nobel Prize in Literature[30][31] "for the courage and clinical acuity with which she uncovers the roots, estrangements and collective restraints of personal memory".[2] Ernaux is the 16th French writer, and the first Frenchwoman, to receive the literature prize.[30] In congratulating her, the president of France, Emmanuel Macron, said that she was the voice "of the freedom of women and of the forgotten".[30] ''']
+sample = ['''I am not angry instead I am very happy''']
 
 
 #Umformatierung von dictionary in Listen
@@ -48,19 +44,37 @@ test_label = convert(test, 'label')
 
 
 def text_to_list_of_sentences(text_list):
-    text_list = text_list[0].split(".")
+    text_list = text_list[0].split('\n')
     return text_list
 
 sample = text_to_list_of_sentences(sample)
 
 
 def pred_validation(pred):
-    for w in torch.Size(pred)[0]:
-        sum = torch.sum(pred[w])
-        for x in w:
-            x = x / sum
-        print(w)
-    return pred
+    Sum_of_emotions = []
+    for w in pred:
+        sum = torch.sum(w)
+        list = w.tolist()
+        sum = sum.item()
+        for x in range(len(list)):
+            list[x] = round(list[x] / sum, 4)
+        Sum_of_emotions.append(list)
+    return Sum_of_emotions
+
+def sum_over_parts(list_of_parts):
+    sums_of_emotions = []
+    for emotion in range(6):
+        sum = 0
+        for part in list_of_parts:
+            sum = sum + part[emotion]
+        sums_of_emotions.append(sum)
+    overall_sum = 0
+    for sum in sums_of_emotions:
+        overall_sum = overall_sum + sum
+    for i in range(6):
+        sums_of_emotions[i] = round(sums_of_emotions[i] / overall_sum, 4)
+            
+    return sums_of_emotions
 
 #Daten zu one-hot wordvector machen
 vec = CountVectorizer(ngram_range=(1,1), lowercase=True)
@@ -208,6 +222,9 @@ pred_test = model(tst_x_tensor)
 
 pred_percentage = pred_validation(pred_test)
 #print(pred_percentage)
+final_verdict = sum_over_parts(pred_percentage)
+#print(final_verdict)
+print('Sadness: {} || Joy: {} || Love: {} || Anger: {} || Fear: {} || Suprise: {}'.format(final_verdict[0], final_verdict[1], final_verdict[2], final_verdict[3], final_verdict[4], final_verdict[5]))
 """
 # Print results
 p  = precision(pred_test, y_test, num_classes=6)
