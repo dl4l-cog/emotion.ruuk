@@ -27,61 +27,14 @@ from datasets import load_dataset
 #Daten laden aus huggingface
 train = load_dataset('emotion', split='train')
 test  = load_dataset('emotion', split='test')
-sample = ['''Now I've heard there was a secret chord
-That David played, and it pleased the Lord
-But you dont really care for music, do you?
-It goes like this, the fourth, the fifth
-The minor falls, the major lifts
-The baffled king composing Hallelujah
-Hallelujah, Hallelujah
-Hallelujah, Hallelujah
-Your faith was strong but you needed proof
-You saw her bathing on the roof
-Her beauty and the moonlight overthrew her
-She tied you to a kitchen chair
-She broke your throne, and she cut your hair
-And from your lips she drew the Hallelujah
-Hallelujah, Hallelujah
-Hallelujah, Hallelujah
-Well, maybe there's a God above
-As for me all I've ever learned from love
-Is how to shoot somebody who outdrew you
-But it's not a crime that you're hear tonight
-It's not some pilgrim who claims to have seen the Light
-No, it's a cold and it's a very broken Hallelujah
-Hallelujah, Hallelujah
-Hallelujah, Hallelujah
-Instrumental
-Hallelujah, Hallelujah
-Hallelujah, Hallelujah
-Well people I've been here before
-I know this room and I've walked this floor
-You see I used to live alone before I knew ya
-And I've seen your flag on the marble arch
-But listen love, love is not some kind of victory march, no
-It's a cold and it's a broken Hallelujah
-Hallelujah, Hallelujah
-Hallelujah, Hallelujah
-There was a time you let me know
-What's really going on below
-But now you never show it to me, do you?
-And I remember when I moved in you
-And the holy dove she was moving too
-And every single breath we drew was Hallelujah
-Hallelujah, Hallelujah
-Hallelujah, Hallelujah
-Now I've done my best, I know it wasn't much
-I couldn't feel, so I tried to touch
-I've told the truth, I didnt come here to London just to fool you
-And even though it all went wrong
-I'll stand right here before the Lord of song
-With nothing, nothing on my tongue but Hallelujah
-Hallelujah, Hallelujah
-Hallelujah, Hallelujah
-Hallelujah, Hallelujah
-Hallelujah, Hallelujah
-Hallelujah''']
-#Umformatierung von dictionary in pd dataframe
+sample = ['''A Woman's Story, A Man's Place, and Simple Passion were recognised as The New York Times Notable Books,[19] and A Woman's Story was a finalist for the Los Angeles Times Book Prize.[20] Shame was named a Publishers Weekly Best Book of 1998,[21] I Remain in Darkness a Top Memoir of 1999 by The Washington Post, and The Possession was listed as a Top Ten Book of 2008 by More magazine.[22]
+
+Her 2008 historical memoir Les Années (The Years), well-received by French critics, is considered by many to be her magnum opus.[23] In this book, Ernaux writes about herself in the third person ('elle', or 'she' in English) for the first time, providing a vivid look at French society just after the Second World War until the early 2000s.[24] It is the story of a woman and of the evolving society she lived in. The Years won the 2008 Prix François-Mauriac de la région Aquitaine [fr],[25] the 2008 Marguerite Duras Prize,[26] the 2008 Prix de la langue française, the 2009 Télégramme Readers Prize, and the 2016 Strega European Prize. Translated by Alison L. Strayer, The Years was a finalist for the 31st Annual French-American Foundation Translation Prize, was nominated for the International Booker Prize in 2019,[27] and won the 2019 Warwick Prize for Women in Translation.[9][28] Her popularity in anglophone countries increased sharply after The Years was shortlisted for the International Booker.[29]
+
+On 6 October 2022, it was announced that she was to be awarded the 2022 Nobel Prize in Literature[30][31] "for the courage and clinical acuity with which she uncovers the roots, estrangements and collective restraints of personal memory".[2] Ernaux is the 16th French writer, and the first Frenchwoman, to receive the literature prize.[30] In congratulating her, the president of France, Emmanuel Macron, said that she was the voice "of the freedom of women and of the forgotten".[30] ''']
+
+
+#Umformatierung von dictionary in Listen
 def convert(data_from_dict, split):
     list = []
     for i in range(len(data_from_dict)):
@@ -93,39 +46,39 @@ train_label = convert(train, 'label')
 test_text = convert(test, 'text')
 test_label = convert(test, 'label')
 
+
+def text_to_list_of_sentences(text_list):
+    text_list = text_list[0].split(".")
+    return text_list
+
+sample = text_to_list_of_sentences(sample)
+
+
+def pred_validation(pred):
+    for w in torch.Size(pred)[0]:
+        sum = torch.sum(pred[w])
+        for x in w:
+            x = x / sum
+        print(w)
+    return pred
+
+#Daten zu one-hot wordvector machen
 vec = CountVectorizer(ngram_range=(1,1), lowercase=True)
 trn_x = vec.fit_transform(train_text)
 
 def text_to_sparse(list_of_text):
-    # Vec transform the text with count vectorizer
-    #vec = CountVectorizer(ngram_range=(1,1), lowercase=True)
     
-    #tst_x = vec.transform(list_of_text)
     text_x = vec.transform(list_of_text)
-    # Convert csr matrices to sparse format
-    #trn_x_coo = coo_matrix(trn_x)
-    #tst_x_coo = coo_matrix(tst_x)
     text_x_coo= coo_matrix(text_x)
 
-    #trn_values = trn_x_coo.data
-    #trn_indices = np.vstack((trn_x_coo.row, trn_x_coo.col))
-    #tst_values = tst_x_coo.data
-    #tst_indices = np.vstack((txt_x_coo.row, tst_x_coo.col))
     text_values = text_x_coo.data
     text_indices = np.vstack((text_x_coo.row, text_x_coo.col))
 
-    #trn_i = torch.LongTensor(trn_indices)
-    #trn_v = torch.FloatTensor(trn_values)
-    #trn_shape = trn_x_coo.shape
-    #tst_i = torch.LongTensor(tst_indices)
-    #tst_v = torch.FloatTensor(tst_values)
-    #tst_shape = tst_x_coo.shape
     text_i = torch.LongTensor(text_indices)
     text_v = torch.FloatTensor(text_values)
     text_shape = text_x_coo.shape
+
     #Making the test and train tensors for the text
-    #trn_x_tensor = torch.sparse.FloatTensor(trn_i, trn_v, torch.Size(trn_shape))
-    #tst_x_tensor = torch.sparse.FloatTensor(tst_i, tst_v, torch.Size(tst_shape))
     text_x_tensor = torch.sparse.FloatTensor(text_i, text_v, torch.Size(text_shape))
     return text_x_tensor
 
@@ -251,12 +204,10 @@ model = torch.load("model700e_1e-4wd.pth")
 
 
 # TEST THE MODEL
-pred_test = 1000 * model(tst_x_tensor)
-print(pred_test)
-softi = nn.Softmax(dim=1)
-#print(softi(torch.randn(2,3)))
-test_output = softi(pred_test)
-print(test_output)
+pred_test = model(tst_x_tensor)
+
+pred_percentage = pred_validation(pred_test)
+#print(pred_percentage)
 """
 # Print results
 p  = precision(pred_test, y_test, num_classes=6)
