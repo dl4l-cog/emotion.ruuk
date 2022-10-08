@@ -1,1 +1,4 @@
+._*
 *.code-workspace
+*.ndjson
+*.tar
