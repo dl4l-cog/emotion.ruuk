@@ -72,23 +72,26 @@ feature_size = trn_x.shape[1]
 def word_lengths_tolist(texts):
     word_lengths = []
     for text in texts:
-        word_lengths.append(len(text))
+        word_lengths.append(len(text.split()))
+
     return word_lengths
 
 word_lengths = word_lengths_tolist(train_text)
 maxlen = max(word_lengths)
-
+print(maxlen)
 def to_3d_sparse(texts, word_lenghts, maxlen):
     list_of_csr = []
     np_zero_vec = np.zeros(feature_size)
 
-    for i in texts:
+    for i in range(len(texts)):
         text_split = texts[i].split()
         word_vec = vec.transform(text_split)
         np_word_vec = word_vec.todense()
-        padding_size = maxlen - word_lenghts[i]
-        np.pad(np_word_vec, (0, padding_size), constant=(0))
-        print(np_word_vec.shape)
+        pad_size = maxlen - word_lenghts[i]
+        for j in range(pad_size):
+            np_word_vec = np.vstack((np_word_vec, np_zero_vec))
+
+        #print(np_word_vec.shape)
     return list_of_csr
 
 data = to_3d_sparse(train_text, word_lengths, maxlen)
