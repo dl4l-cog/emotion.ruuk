@@ -29,3 +29,16 @@ How do emotions change in social interactions after a particularly emotion-loade
 https://www.kaggle.com/datasets/nltkdata/nps-chat
 http://www.psych.ualberta.ca/~westburylab/downloads/usenetcorpus.download.html
 http://dataset.cs.mcgill.ca/ubuntu-corpus-1.0/
+
+### 4chan /pol/ Dataset
+Papasavva et al. Raiders of the Lost Kek: 3.5 Years of Augmented 4chan Posts from the Politically Incorrect Board. (2020). 14th International AAAI Conference On Web And Social Media (ICWSM), 2020.
+https://arxiv.org/abs/2001.07487
+https://zenodo.org/record/3606810
+&rarr; freely available!
+
+<!-- @article{papasavva2020raiders,
+  title={Raiders of the Lost Kek: 3.5 Years of Augmented 4chan Posts from the Politically Incorrect Board},
+  author={Antonis Papasavva, Savvas Zannettou, Emiliano De Cristofaro, Gianluca Stringhini, Jeremy Blackburn},
+  journal={14th International AAAI Conference On Web And Social Media (ICWSM), 2020},
+  year={2020}  
+} -->
