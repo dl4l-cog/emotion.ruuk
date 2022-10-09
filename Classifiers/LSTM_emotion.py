@@ -82,12 +82,13 @@ def to_3d_sparse(texts, word_lenghts, maxlen):
     list_of_csr = []
     np_zero_vec = np.zeros(feature_size)
 
-    for text in texts:
-        text_split = text.split()
+    for i in texts:
+        text_split = texts[i].split()
         word_vec = vec.transform(text_split)
-        np_wordvec = word_vec.todense()
-        np.zeros(maxlen, feature_size)
-
+        np_word_vec = word_vec.todense()
+        padding_size = maxlen - word_lenghts[i]
+        np.pad(np_word_vec, (0, padding_size), constant=(0))
+        print(np_word_vec.shape)
     return list_of_csr
 
 data = to_3d_sparse(train_text, word_lengths, maxlen)
