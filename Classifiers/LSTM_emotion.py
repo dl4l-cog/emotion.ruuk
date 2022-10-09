@@ -10,7 +10,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 #from sklearn.model_selection import train_test_split
 #from sklearn.feature_extraction.text import TfidfVectorizer
 #import pandas as pd
-from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix, csr_matrix, vstack
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -78,23 +78,28 @@ def word_lengths_tolist(texts):
 
 word_lengths = word_lengths_tolist(train_text)
 maxlen = max(word_lengths)
-print(maxlen)
+
+
+
 def to_3d_sparse(texts, word_lenghts, maxlen):
     list_of_csr = []
     np_zero_vec = np.zeros(feature_size)
-
+    csr_zero_vec = csr_matrix(np_zero_vec)
     for i in range(len(texts)):
         text_split = texts[i].split()
         word_vec = vec.transform(text_split)
-        np_word_vec = word_vec.todense()
+        #np_word_vec = word_vec.todense()
         pad_size = maxlen - word_lenghts[i]
         for j in range(pad_size):
-            np_word_vec = np.vstack((np_word_vec, np_zero_vec))
-
-        #print(np_word_vec.shape)
+            word_vec = vstack((word_vec, np_zero_vec))
+        
+        #word_vec = csr_matrix(np_word_vec)
+    print(word_vec.shape)
+    print(i)
     return list_of_csr
 
 data = to_3d_sparse(train_text, word_lengths, maxlen)
+print(data.shape)
 
 
 
