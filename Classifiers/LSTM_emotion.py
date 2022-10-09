@@ -67,7 +67,37 @@ def pred_validation(pred):
 #Daten zu one-hot wordvector machen
 vec = CountVectorizer(ngram_range=(1,1), lowercase=True)
 trn_x = vec.fit_transform(train_text)
+feature_size = trn_x.shape[1]
 
+def word_lengths_tolist(texts):
+    word_lengths = []
+    for text in texts:
+        word_lengths.append(len(text))
+    return word_lengths
+
+word_lengths = word_lengths_tolist(train_text)
+maxlen = max(word_lengths)
+
+def to_3d_sparse(texts, word_lenghts, maxlen):
+    list_of_csr = []
+    np_zero_vec = np.zeros(feature_size)
+
+    for text in texts:
+        text_split = text.split()
+        word_vec = vec.transform(text_split)
+        np_wordvec = word_vec.todense()
+        np.zeros(maxlen, feature_size)
+
+    return list_of_csr
+
+data = to_3d_sparse(train_text, word_lengths, maxlen)
+
+
+
+
+
+
+"""
 def text_to_sparse(list_of_text):
     
     text_x = vec.transform(list_of_text)
@@ -194,7 +224,7 @@ pred_test = model(tst_x_tensor)
 
 pred_percentage = pred_validation(pred_test)
 print(pred_percentage)
-"""
+
 # Print results
 p  = precision(pred_test, y_test, num_classes=6)
 r  =    recall(pred_test, y_test, num_classes=6)
