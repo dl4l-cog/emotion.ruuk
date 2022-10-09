@@ -16,6 +16,8 @@ from keras.layers import Embedding, LSTM
 import collections
 import pathlib
 import tensorflow as tf
+#import tensorflow_addons as tfa
+
 from tensorflow.keras import layers
 from tensorflow.keras import losses
 from tensorflow.keras import utils
@@ -60,24 +62,38 @@ model = tf.keras.Sequential([
     tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(20)),
     tf.keras.layers.Dense(6, activation='softmax')
 ])
+
+
+model = tf.keras.models.load_model('model_keras')
+
 model.compile(
     loss='sparse_categorical_crossentropy',
     optimizer='adam',
     metrics=['accuracy']
 )
+
+
 model.summary()
-history = model.fit(train_dataset, epochs=2,
+"""
+history = model.fit(train_dataset, epochs=4,
                     validation_data=test_dataset,
                     validation_steps=30)
+
+model.save("model_keras")
+"""
 test_loss, test_acc = model.evaluate(test_dataset)
+
+
 
 print('Test Loss:', test_loss)
 print('Test Accuracy:', test_acc)
 
 sample_text = ('I am not angry')
 predictions = model.predict(np.array([sample_text]))
+#metric = tfa.metrics.F1Score(num_classes=6, threshold=0.5)
+
 print(predictions)
-print('Sadness: {} || Joy: {} || Love: {} || Anger: {} || Fear: {} || Suprise: {}'.format(predictions[0], predictions[1], predictions[2], predictions[3], predictions[4], predictions[5]))
+print('Sadness: {:.4f} || Joy: {:.4f} || Love: {:.4f} || Anger: {:.4f} || Fear: {:.4f} || Suprise: {:.4f}'.format(predictions[0][1], predictions[0][1], predictions[0][2], predictions[0][3], predictions[0][4], predictions[0][5]))
 
 
 
