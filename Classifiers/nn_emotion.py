@@ -27,7 +27,51 @@ from datasets import load_dataset
 #Daten laden aus huggingface
 train = load_dataset('emotion', split='train')
 test  = load_dataset('emotion', split='test')
-sample = ['''I am not angry instead I am very happy''']
+sample = ['''I know your eyes in the morning sun
+I feel you touch me in the pouring rain
+And the moment that you wander far from me
+I wanna feel you in my arms again
+And you come to me on a summer breeze
+Keep me warm in your love, then you softly leave
+And it's me you need to show
+How deep is your love
+How deep is your love, how deep is your love
+I really mean to learn
+'Cause we're living in a world of fools
+Breaking us down when they all should let us be
+We belong to you and me
+I believe in you
+You know the door to my very soul
+You're the light in my deepest, darkest hour
+You're my savior when I fall
+And you may not think, I care for you
+When you know down inside that I really do
+And it's me you need to show
+How deep is your love
+How deep is your love, how deep is your love
+I really mean to learn
+'Cause we're living in a world of fools
+Breaking us down when they all should let us be
+We belong to you and me
+And you come to me on a summer breeze
+Keep me warm in your love, then you softly leave
+And it's me you need to show
+How deep is your love
+How deep is your love, how deep is your love
+I really mean to learn
+'Cause we're living in a world of fools
+Breaking us down when they all should let us be
+We belong to you and me
+How deep is your love, how deep is your love
+I really mean to learn
+'Cause we're living in a world of fools
+Breaking us down when they all should let us be
+We belong to you and me
+How deep is your love, how deep is your love
+I really mean to learn
+'Cause we're living in a world of fools
+Breaking us down when they all should let us be
+We belong to you and me''']
 
 
 #Umformatierung von dictionary in Listen
@@ -47,7 +91,7 @@ def text_to_list_of_sentences(text_list):
     text_list = text_list[0].split('\n')
     return text_list
 
-sample = text_to_list_of_sentences(sample)
+#sample = text_to_list_of_sentences(sample)
 
 
 def pred_validation(pred):
@@ -99,6 +143,7 @@ def text_to_sparse(list_of_text):
 trn_x_tensor = text_to_sparse(train_text)
 #tst_x_tensor = text_to_sparse(test_text)
 tst_x_tensor = text_to_sparse(sample)
+sample_x_tensor = text_to_list_of_sentences(sample)
 #Making y which is the tensor of emotion labels
 y = torch.tensor(train_label)
 y_test = torch.tensor(test_label)
@@ -219,8 +264,8 @@ model = torch.load("model700e_1e-4wd.pth")
 
 # TEST THE MODEL
 pred_test = model(tst_x_tensor)
-
-pred_percentage = pred_validation(pred_test)
+pred_sample = model(sample_x_tensor)
+pred_percentage = pred_validation(pred_sample)
 #print(pred_percentage)
 final_verdict = sum_over_parts(pred_percentage)
 #print(final_verdict)
