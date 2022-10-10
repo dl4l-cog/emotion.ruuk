@@ -23,6 +23,7 @@ Unfortunately as stated in data request form (https://docs.google.com/forms/d/e/
 
 ## POLITICAL DATASETS
 https://www.kaggle.com/datasets/manchunhui/us-election-2020-tweets
+https://huggingface.co/datasets/hugginglearners/russia-ukraine-conflict-articles
 
 ## CONVERSATION DATASETS
 How do emotions change in social interactions after a particularly emotion-loaded comment?
@@ -42,3 +43,11 @@ https://zenodo.org/record/3606810
   journal={14th International AAAI Conference On Web And Social Media (ICWSM), 2020},
   year={2020}  
 } -->
+
+
+## Twitter Dataset War Between Ukraine and Russia
+https://arxiv.org/abs/2203.07488
+
+https://github.com/echen102/ukraine-russia
+
+
