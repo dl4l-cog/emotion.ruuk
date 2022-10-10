@@ -80,25 +80,39 @@ word_lengths = word_lengths_tolist(train_text)
 maxlen = max(word_lengths)
 
 
-
-def to_3d_sparse(texts, word_lenghts, maxlen):
-    list_of_csr = []
+# Tensor with dense dim(1) + sparse dim(2)
+def to_3d_sparse_tensor(texts, word_lenghts, maxlen):
+    list_of_tensors = []
     np_zero_vec = np.zeros(feature_size)
     csr_zero_vec = csr_matrix(np_zero_vec)
     for i in range(len(texts)):
         text_split = texts[i].split()
         word_vec = vec.transform(text_split)
-        #np_word_vec = word_vec.todense()
-        pad_size = maxlen - word_lenghts[i]
-        for j in range(pad_size):
-            word_vec = vstack((word_vec, np_zero_vec))
-        
-        #word_vec = csr_matrix(np_word_vec)
-    print(word_vec.shape)
-    print(i)
-    return list_of_csr
 
-data = to_3d_sparse(train_text, word_lengths, maxlen)
+         # Filling up with zeros up to maxlen
+        pad_size = maxlen - word_lenghts[i]
+        for j in range(pad_size):                  
+            word_vec = vstack((word_vec, csr_zero_vec))
+            
+        #csr to sparse tensor
+        vec_coo= coo_matrix(word_vec)
+
+        vec_values = vec_coo.data
+        vec_indices = np.vstack((vec_coo.row, vec_coo.col))
+
+        vec_i = torch.LongTensor(vec_indices)
+        vec_v = torch.FloatTensor(vec_values)
+        vec_shape = vec_coo.shape
+        vec_tensor = torch.sparse.FloatTensor(vec_i, vec_v, torch.Size(vec_shape))
+        list_of_tensors.append(vec_tensor)
+
+
+    data_tensor = torch.stack((list_of_tensors), 0)
+    #Making the test and train tensors for the text
+    
+    return data_tensor
+
+data = to_3d_sparse_tensor(train_text, word_lengths, maxlen)
 print(data.shape)
 
 
