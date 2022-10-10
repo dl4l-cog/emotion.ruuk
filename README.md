@@ -23,6 +23,7 @@ Unfortunately as stated in data request form (https://docs.google.com/forms/d/e/
 
 ## POLITICAL DATASETS
 https://www.kaggle.com/datasets/manchunhui/us-election-2020-tweets
+https://huggingface.co/datasets/hugginglearners/russia-ukraine-conflict-articles
 
 ## CONVERSATION DATASETS
 How do emotions change in social interactions after a particularly emotion-loaded comment?
