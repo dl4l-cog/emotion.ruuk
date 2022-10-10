@@ -43,3 +43,10 @@ https://zenodo.org/record/3606810
   journal={14th International AAAI Conference On Web And Social Media (ICWSM), 2020},
   year={2020}  
 } -->
+
+
+## Twitter Dataset War Between Ukraine and Russia
+https://arxiv.org/abs/2203.07488
+https://github.com/echen102/ukraine-russia
+
+
