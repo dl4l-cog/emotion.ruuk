@@ -112,37 +112,13 @@ def to_3d_sparse_tensor(texts, word_lenghts, maxlen):
     
     return data_tensor
 
-data = to_3d_sparse_tensor(train_text, word_lengths, maxlen)
-print(data.shape)
+train_data = to_3d_sparse_tensor(train_text, word_lengths, maxlen)
 
 
-
-
-
-
-"""
-def text_to_sparse(list_of_text):
-    
-    text_x = vec.transform(list_of_text)
-    text_x_coo= coo_matrix(text_x)
-
-    text_values = text_x_coo.data
-    text_indices = np.vstack((text_x_coo.row, text_x_coo.col))
-
-    text_i = torch.LongTensor(text_indices)
-    text_v = torch.FloatTensor(text_values)
-    text_shape = text_x_coo.shape
-
-    #Making the test and train tensors for the text
-    text_x_tensor = torch.sparse.FloatTensor(text_i, text_v, torch.Size(text_shape))
-    return text_x_tensor
-
-trn_x_tensor = text_to_sparse(train_text)
-#tst_x_tensor = text_to_sparse(test_text)
-tst_x_tensor = text_to_sparse(sample)
 #Making y which is the tensor of emotion labels
 y = torch.tensor(train_label)
 y_test = torch.tensor(test_label)
+
 
 #Setup CUDA if available, else CPU
 print("cudNN Version", torch.backends.cudnn.version())
@@ -152,14 +128,13 @@ print(f"Using {device} device")
 
 # Creating Dataset
 class SparseDataset(Dataset):
-    def __init__(self, mat_csc, label, device="cpu"):
-        self.dim = mat_csc.shape
+    def __init__(self, data, label, device="cpu"):
+        self.dim = data.shape
         self.device = torch.device(device)
 
-        csr = mat_csc.tocsr(copy=True)
-        self.indptr = torch.tensor(csr.indptr, dtype=torch.int64, device=self.device)
-        self.indices = torch.tensor(csr.indices, dtype=torch.int64, device=self.device)
-        self.data = torch.tensor(csr.data, dtype=torch.float32, device=self.device)
+        #self.indptr = torch.tensor(csr.indptr, dtype=torch.int64, device=self.device)
+        #self.indices = torch.tensor(csr.indices, dtype=torch.int64, device=self.device)
+        #self.data = torch.tensor(csr.data, dtype=torch.float32, device=self.device)
 
         self.label = torch.tensor(label, dtype=torch.float32, device=self.device)
 
@@ -167,20 +142,21 @@ class SparseDataset(Dataset):
         return self.dim[0]
 
     def __getitem__(self, idx):
-        obs = torch.zeros((self.dim[1],), dtype=torch.float32, device=self.device)
-        ind1,ind2 = self.indptr[idx],self.indptr[idx+1]
-        obs[self.indices[ind1:ind2]] = self.data[ind1:ind2]
+        obs = torch.zeros((self.dim[2],), dtype=torch.float32, device=self.device)
+        ind1, ind2,ind3 = self.indptr[idx],self.indptr[idx+1]
+        obs[self.indices[ind1:ind2]] = self.data[ind1:ind2:ind3]
 
         return obs,self.label[idx]
 
-train_ds = SparseDataset(trn_x, y)
+train_ds = SparseDataset(train_data, y)
+
 
 # Define Dataloader and hyperparameters
-hidden_size = 128
-num_layers = 8
+hidden_size = 64
+num_layers = 4
 batch_size = 100 #batchsize depends on available memory
 train_dl = DataLoader(train_ds, batch_size, shuffle=True)
-
+"""
 # Define model
 class RNN(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, output_size):
@@ -244,6 +220,7 @@ torch.save(model, "model.pth")
 
 # TEST THE MODEL
 pred_test = model(tst_x_tensor)
+
 
 pred_percentage = pred_validation(pred_test)
 print(pred_percentage)
