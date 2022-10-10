@@ -1,15 +1,15 @@
-from fcntl import DN_DELETE
 import json
-from this import d
 import pandas as pd
 
 # read file
 read_file = open("Raiders of the Lost Kek/first2500lines.txt", "r")
 lines = read_file.readlines()
 
-# EXAMPLE
+# EVALUATION
 # counting how often a country appears
 countries = dict()
+# counting how often a named entity appears
+named_entity = dict()
 
 # iterate over lines
 # -> each line is a new thread
