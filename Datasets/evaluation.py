@@ -9,7 +9,7 @@ lines = read_file.readlines()
 # counting how often a country appears
 countries = dict()
 # counting how often a named entity appears
-named_entity = dict()
+named_entities = dict()
 
 # iterate over lines
 # -> each line is a new thread
@@ -22,6 +22,7 @@ for line in lines:
     
     # FOR every post IN the thread, DO...
     for i in range(len(data["posts"])):
+        # COUNTRIES
         # get country of origin post was posted from
         # -> if not available -> "unknown"
         try:
@@ -37,8 +38,26 @@ for line in lines:
         else:
             countries[country_name] = 1
 
-print(countries)
+        # ENTITIES
+        # get entities named in post
+        # -> if not available -> "none"
+        try:
+            named_entities_in_post = data["posts"][i]["entities"]
+        except KeyError:
+            named_entities_in_post = "none"
 
+        for e in range(len(named_entities_in_post)):
+            named_entity_name = named_entities_in_post[e]["entity_text"]
+            # IF named entity is in dictionary of entities
+            # -> increase count by one
+            if named_entity_name in named_entities:
+                named_entities[named_entity_name] += 1
+            # ELSE add entity to dictionary
+            else:
+                named_entities[named_entity_name] = 1
+
+print(countries)
+print(named_entities)
 
 # RESULT
 """
