@@ -145,7 +145,8 @@ class SparseDataset(Dataset):
     def __getitem__(self, idx):
         current = self.data[idx].to_dense()
         current = current.type(torch.DoubleTensor)
-        return  current[0], self.label[idx]
+        print(current.dtype)
+        return  current, self.label[idx]
 
 train_ds = SparseDataset(train_data, y)
 
@@ -168,10 +169,14 @@ class LSTM(nn.Module):
         self.out_act = nn.Sigmoid()
         
     def forward(self, x):
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.double).to(device)
-        print(x.shape)
-        out, _ = self.lstm(x, h0)
-        out = out[:, -1, :]
+        x = torch.tensor(x, dtype=torch.double)#x.type(torch.DoubleTensor)
+        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.double)
+        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.double)
+        print(x.dtype)
+        print(h0.dtype)
+        out, (hn, cn) = self.lstm(x, (h0, c0))
+        hn = hn.view(-1, self.hidden_size)
+        out = self.relu(hn)
         out = self.fc(out)
         return out
 
