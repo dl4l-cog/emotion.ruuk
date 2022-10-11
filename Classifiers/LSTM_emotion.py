@@ -112,41 +112,41 @@ def to_3d_sparse_tensor(texts, word_lenghts, maxlen):
     
     return data_tensor
 
-train_data = to_3d_sparse_tensor(train_text, word_lengths, maxlen)
-
+#Making and saving traiing data in 3d sparse tensor
+try:
+    train_data = torch.load('train_tensor.pt')
+except:
+    train_data = to_3d_sparse_tensor(train_text, word_lengths, maxlen)
+    torch.save(train_data, 'train_tensor.pt')
 
 #Making y which is the tensor of emotion labels
 y = torch.tensor(train_label)
 y_test = torch.tensor(test_label)
-
+print("Created training tensor succesfully", '\n', '\n')
 
 #Setup CUDA if available, else CPU
 print("cudNN Version", torch.backends.cudnn.version())
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cpu" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
 
 
 # Creating Dataset
 class SparseDataset(Dataset):
-    def __init__(self, data, label, device="cpu"):
+    def __init__(self, data, label, device=device):
         self.dim = data.shape
         self.device = torch.device(device)
-
-        #self.indptr = torch.tensor(csr.indptr, dtype=torch.int64, device=self.device)
-        #self.indices = torch.tensor(csr.indices, dtype=torch.int64, device=self.device)
-        #self.data = torch.tensor(csr.data, dtype=torch.float32, device=self.device)
-
+        self.data = torch.tensor(data, dtype=torch.float64, device=self.device)
+        
         self.label = torch.tensor(label, dtype=torch.float32, device=self.device)
 
     def __len__(self):
         return self.dim[0]
 
     def __getitem__(self, idx):
-        obs = torch.zeros((self.dim[2],), dtype=torch.float32, device=self.device)
-        ind1, ind2,ind3 = self.indptr[idx],self.indptr[idx+1]
-        obs[self.indices[ind1:ind2]] = self.data[ind1:ind2:ind3]
-
-        return obs,self.label[idx]
+        current = self.data[idx].to_dense()
+        current = current.type(torch.DoubleTensor)
+        print(current.dtype)
+        return  current, self.label[idx]
 
 train_ds = SparseDataset(train_data, y)
 
@@ -156,32 +156,35 @@ hidden_size = 64
 num_layers = 4
 batch_size = 100 #batchsize depends on available memory
 train_dl = DataLoader(train_ds, batch_size, shuffle=True)
-"""
+
 # Define model
-class RNN(nn.Module):
+class LSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, output_size):
-        super(RNN,self).__init__()
+        super(LSTM,self).__init__()
 
         self.num_layers = num_layers
         self.hidden_size = hidden_size
-        self.rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, output_size)
         self.out_act = nn.Sigmoid()
         
     def forward(self, x):
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
-        print(h0.shape)
-        print(x.shape)
-        out, _ = self.rnn(x, h0)
-        out = out[:, -1, :]
+        x = torch.tensor(x, dtype=torch.double)#x.type(torch.DoubleTensor)
+        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.double)
+        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.double)
+        print(x.dtype)
+        print(h0.dtype)
+        out, (hn, cn) = self.lstm(x, (h0, c0))
+        hn = hn.view(-1, self.hidden_size)
+        out = self.relu(hn)
         out = self.fc(out)
         return out
 
 #Initialize model
-input_size = trn_x_tensor.shape[1]
+input_size = train_data.shape[2]
 output_size = 6
 
-model = RNN(input_size, hidden_size, num_layers, output_size)
+model = LSTM(input_size, hidden_size, num_layers, output_size)
 
 
 # Define loss function
@@ -232,5 +235,5 @@ f1 =  f1_score(pred_test, y_test, num_classes=6)
 print("F1-score:", f1)
 print("Precision:", p)
 print("Recall:", r)
-"""
+
 
