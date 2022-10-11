@@ -12,6 +12,8 @@ from tensorflow.keras import losses
 from tensorflow.keras import utils
 from tensorflow.keras.layers import TextVectorization
 import json
+from keras import backend as K
+
 
 
 train = load_dataset('emotion', split='train')
@@ -20,6 +22,29 @@ test  = load_dataset('emotion', split='test')
 # Convert Huggingfacedata into Tensorflow Data
 train_dataset = train.to_tf_dataset(columns=["text"], label_cols=["label"],  batch_size = 64)
 test_dataset = test.to_tf_dataset(columns=["text"], label_cols=["label"], batch_size = 64)
+
+
+
+######################## EVALUATION #######################
+def recall_m(y_true, y_pred):
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    recall = true_positives / (possible_positives + K.epsilon())
+    return recall
+
+def precision_m(y_true, y_pred):
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    precision = true_positives / (predicted_positives + K.epsilon())
+    return precision
+
+def f1_m(y_true, y_pred):
+    precision = precision_m(y_true, y_pred)
+    recall = recall_m(y_true, y_pred)
+    return 2*((precision*recall)/(precision+recall+K.epsilon()))
+###################################################################
+
+
 
 # Select the 10000 most frequent words from the training data and give each word a number
 VOCAB_SIZE = 4000
@@ -39,35 +64,39 @@ model = tf.keras.Sequential([
         mask_zero=True),
     # Bidirectional LSTM Layers integrate a long and short-term memory into the NN
     tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(20, return_sequences=True, recurrent_dropout=0.2)),
-    tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(20, recurrent_dropout=0.2)),
+    tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(20, recurrent_dropout=0.2, activity_regularizer=tf.keras.regularizers.L2(0.01))),
     # Output layer consists of 6 different emotions
     tf.keras.layers.Dense(6, activation='softmax')
 ])
 
 # This will load the already trained model
-model = tf.keras.models.load_model('model_keras_big')
+#model = tf.keras.models.load_model('model_keras_big')
 
 model.compile(
     loss='sparse_categorical_crossentropy',
     optimizer='adam',
-    metrics=['accuracy']
+    metrics=['acc', f1_m,precision_m, recall_m]
 )
 
 
 model.summary()
 # Training the model
-"""
-history = model.fit(train_dataset, epochs=6,
+
+history = model.fit(train_dataset, epochs=5,
                     validation_data=test_dataset,
                     validation_steps=30)
 # Saving the model so it does'nt have to be trained every time
 model.save("model_keras_big")
-"""
 
 
-#test_loss, test_acc = model.evaluate(test_dataset)
-#print('Test Loss:', test_loss)
-#print('Test Accuracy:', test_acc)
+loss, accuracy, f1_score, precision, recall = model.evaluate(test_dataset)
+print('Test Loss:', loss)
+print('Test Accuracy:', accuracy)
+print('Test F1', f1_score)
+print('precision', precision)
+print('recall', recall)
+
+
 
 # Sample Texts to test the model
 sample_text = ('''Im so sick of this bullshit''')
@@ -106,27 +135,37 @@ def sum_over_parts(list_of_parts):
 with open('test.jsonl', 'r') as json_file:
     json_list = list(json_file)
 
-tweet_text_list = []
-for tweets in json_list:
-    result = json.loads(tweets)
-    if result["lang"] == "en": 
-        tweet_text_list.append(result["full_text"])
-    #print(type(result))
-    #print(f"result: {result['full_text']}")
-    #print(isinstance(result, dict))
+
+# Wandelt Json in Liste an Texten um
+def json_to_listOfTexts(json_list):        
+    tweet_text_list = []
+    for tweets in json_list:
+        result = json.loads(tweets)
+        print(result)
+        if result["lang"] == "en" and islongerthanthreewords(result): 
+            tweet_text_list.append(result["full_text"])
+
+def islongerthanthreewords(tweet):
+    list_of_words = tweet["full_text"].split()
+    return len(list_of_words) > 3
+
+def predictEmotions(list_of_texts):                
+    detected_emotions = []
+    for i in range(len(list_of_texts)):
+    #for emotional_text in emotion_data:
+        emotions = model.predict(np.array([(list_of_texts[i])]))
+        emotional_list = [emotions[0][0], emotions[0][1], emotions[0][2], emotions[0][3], emotions[0][4], emotions[0][5]]
+        detected_emotions.append(emotional_list)
+    return emotional_list
+
+# Mean of emotions of tweets in detected emotions
+def emotion_mean(detected_emotions):
+    mean_emotions = np.array([0, 0, 0, 0, 0, 0])
+    for onetweet in detected_emotions:
+        mean_emotions = mean_emotions + np.array(onetweet) 
+
+    mean_emotions = mean_emotions / np.array([len(detected_emotions), len(detected_emotions), len(detected_emotions), len(detected_emotions), len(detected_emotions), len(detected_emotions)])
+    return mean_emotions
 
 
-
-#############################################################
-###############--Data Entry--################################
-
-emotion_data = tweet_text_list # Hier Liste an Texten die evaluiert werden sollen reintuen
-dectected_emotions = []
-for i in range(250):
-
-#for emotional_text in emotion_data:
-    emotions = model.predict(np.array([(emotion_data[i])]))
-    emotional_list = [emotions[0][0], emotions[0][1], emotions[0][2], emotions[0][3], emotions[0][4], emotions[0][5]]
-    dectected_emotions.append(emotional_list)
-
-print(dectected_emotions)
+#print(emotion_mean(detected_emotions))
