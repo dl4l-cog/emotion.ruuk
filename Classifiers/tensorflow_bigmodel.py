@@ -131,6 +131,18 @@ def sum_over_parts(list_of_parts):
 # 1 = Sadness, 2 = Joy, 3 = Love, 4 = Anger, 5 = Fear, 6 = Suprise
 
 # Tweets einlesen
+def removeUrl(tweet):
+    tweet["full_text"] = re.sub(r" http\S+", "", tweet["full_text"])
+
+def removeHashtag(tweet):
+    tweet["full_text"] = re.sub(r" #\S+", "", tweet["full_text"])
+
+def removeAT(tweet):
+    tweet["full_text"] = re.sub(r" @\S+", "", tweet["full_text"])
+
+
+def isReply(tweet):
+    return tweet["in_reply_to_status_id"] is not None
 
 with open('test.jsonl', 'r') as json_file:
     json_list = list(json_file)
@@ -142,8 +154,12 @@ def json_to_listOfTexts(json_list):
     for tweets in json_list:
         result = json.loads(tweets)
         print(result)
-        if result["lang"] == "en" and islongerthanthreewords(result): 
-            tweet_text_list.append(result["full_text"])
+        if result["lang"] == "en" and islongerthanthreewords(result) and not isReply: 
+            text = result["full_text"]
+            text = removeAT(text)
+            text = removeHashtag(text)
+            text = removeUrl(text)
+            tweet_text_list.append()
 
 def islongerthanthreewords(tweet):
     list_of_words = tweet["full_text"].split()
