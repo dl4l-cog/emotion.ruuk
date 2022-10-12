@@ -152,15 +152,17 @@ train_ds = SparseDataset(train_data, y)
 # Define Dataloader and hyperparameters
 hidden_size = 64
 num_layers = 2
-batch_size = 8 #batchsize depends on available memory
+batch_size = 128 #batchsize depends on available memory
 train_dl = DataLoader(train_ds, batch_size, shuffle=True)
 
 def outputfix(pred_tensor, num_layers):
 
-    for i in range(pred_tensor.shape[0]):
+    out = torch.zeros(6)
+    for i in range(1, pred_tensor.shape[0]):
+        idx = i
         if i % num_layers != 0:
-            pred_tensor = pred_tensor[i:]
-    return pred_tensor
+            out = torch.vstack((out, pred_tensor[i-1:i:]))
+    return out[1:]
 
 # Define model
 class LSTM(nn.Module):
@@ -212,9 +214,10 @@ def fit(num_epochs, model, loss_fn, opt, train_dl):
         # Train with batches of data
         for xb,yb in train_dl:
             yb = torch.tensor(yb, dtype=torch.long) # 0. setting right dtype for loss_fn (long required)
-            pred = model(xb.double())               # 1. Generate predictions
+            pred = model(xb.double()) 
+            #print(pred)              # 1. Generate predictions
             pred = outputfix(pred, num_layers)  
-            print(pred)                                       
+            #print(pred)                                       
             loss = loss_fn(pred, yb)                # 2. Calculate loss
             loss.backward()                         # 3. Compute gradients
             opt.step()                              # 4. Update parameters using gradients
