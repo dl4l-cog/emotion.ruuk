@@ -12,7 +12,9 @@ from tensorflow.keras import losses
 from tensorflow.keras import utils
 from tensorflow.keras.layers import TextVectorization
 import json
-from keras import backend as K
+from sklearn.metrics import classification_report
+import tensorflow_addons as tfa
+
 
 
 
@@ -25,23 +27,6 @@ test_dataset = test.to_tf_dataset(columns=["text"], label_cols=["label"], batch_
 
 
 
-######################## EVALUATION #######################
-def recall_m(y_true, y_pred):
-    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
-    recall = true_positives / (possible_positives + K.epsilon())
-    return recall
-
-def precision_m(y_true, y_pred):
-    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
-    precision = true_positives / (predicted_positives + K.epsilon())
-    return precision
-
-def f1_m(y_true, y_pred):
-    precision = precision_m(y_true, y_pred)
-    recall = recall_m(y_true, y_pred)
-    return 2*((precision*recall)/(precision+recall+K.epsilon()))
 ###################################################################
 
 
@@ -62,39 +47,58 @@ model = tf.keras.Sequential([
         output_dim=64,
         # Use masking to handle the variable sequence lengths
         mask_zero=True),
+    #tf.keras.layers.Conv1D(filters=32, kernel_size=3, padding='same', activation='relu'),
+    #tf.keras.layers.MaxPooling1D(pool_size=4),
+
     # Bidirectional LSTM Layers integrate a long and short-term memory into the NN
-    tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(20, return_sequences=True, recurrent_dropout=0.2)),
-    tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(20, recurrent_dropout=0.2, activity_regularizer=tf.keras.regularizers.L2(0.01))),
+    tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(20, return_sequences=True, recurrent_dropout=0.4)),
+    tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(20, recurrent_dropout=0.4, activity_regularizer=tf.keras.regularizers.L2(0.01))),
     # Output layer consists of 6 different emotions
+    #tf.keras.layers.Dense(64, activity_regularizer=tf.keras.regularizers.L2(0.01)),
+    #tf.keras.layers.Dropout(0.4),
     tf.keras.layers.Dense(6, activation='softmax')
 ])
 
 # This will load the already trained model
-#model = tf.keras.models.load_model('model_keras_big')
+model = tf.keras.models.load_model('model_keras_big')
 
 model.compile(
     loss='sparse_categorical_crossentropy',
     optimizer='adam',
-    metrics=['acc', f1_m,precision_m, recall_m]
+    metrics=['accuracy']
 )
 
 
 model.summary()
 # Training the model
+"""
 
 history = model.fit(train_dataset, epochs=5,
                     validation_data=test_dataset,
                     validation_steps=30)
 # Saving the model so it does'nt have to be trained every time
 model.save("model_keras_big")
+"""
+
+def expand_test(list_of_preds):
+    expanded_preds = []
+    for pred in list_of_preds:
+        prediction = []
+        for i in range(6):
+            if i == int(pred):
+                prediction.append(1)
+            else: 
+                prediction.append(0)
+        expanded_preds.append(prediction)  
+    return np.asarray(expanded_preds)
 
 
-loss, accuracy, f1_score, precision, recall = model.evaluate(test_dataset)
-print('Test Loss:', loss)
-print('Test Accuracy:', accuracy)
-print('Test F1', f1_score)
-print('precision', precision)
-print('recall', recall)
+metric = tfa.metrics.F1Score(num_classes=6, threshold=0.5)
+predictions_test = model.predict(np.array(test["text"]))
+metric.update_state(expand_test(test["label"]), predictions_test)
+result = metric.result()
+print("F1 for each emotion", result) 
+print("F1-mean", tf.math.reduce_mean(result))
 
 
 
@@ -130,24 +134,43 @@ def sum_over_parts(list_of_parts):
 # detected emotions ist Matrix mit evaluierten Emotionen
 # 1 = Sadness, 2 = Joy, 3 = Love, 4 = Anger, 5 = Fear, 6 = Suprise
 
-# Tweets einlesen
 
-with open('test.jsonl', 'r') as json_file:
+
+# Tweets einlesen
+with open('Ukraine_Krieg_Tweets.jsonl', 'r') as json_file:
     json_list = list(json_file)
 
 
-# Wandelt Json in Liste an Texten um
-def json_to_listOfTexts(json_list):        
-    tweet_text_list = []
-    for tweets in json_list:
-        result = json.loads(tweets)
-        print(result)
-        if result["lang"] == "en" and islongerthanthreewords(result): 
-            tweet_text_list.append(result["full_text"])
+# Anzahl der Tweets die man sich bewerten lassen will
+json_list = json_list[:15000]
 
+
+
+# Wandelt Json in Liste an Listen mit jeweil 5000 Texten (5000 random Tweets von einem Tag)
+def json_to_listOfTexts(json_list):        
+    tweet_list_by_day = []
+    one_day_of_tweets = []
+    for i in range(len(json_list)):
+        if i % 5000 == 0 and i > 0:
+            tweet_list_by_day.append(one_day_of_tweets)
+            one_day_of_tweets = []
+        onetweet = json.loads(json_list[i])
+        if onetweet["lang"] == "en" and islongerthanthreewords(onetweet): 
+            one_day_of_tweets.append(onetweet["full_text"])
+    return tweet_list_by_day
+
+# Schaut ob Eingabestring kürzer ist als drei Worte
 def islongerthanthreewords(tweet):
     list_of_words = tweet["full_text"].split()
     return len(list_of_words) > 3
+
+def wholePrediction(tweet_list_by_day):
+    daily_emotions = []
+    for day_of_tweets in tweet_list_by_day:
+        predicted_emotions_one_day = predictEmotions(day_of_tweets)
+        daily_emotions.append(emotion_mean(predicted_emotions_one_day))
+    return daily_emotions
+
 
 def predictEmotions(list_of_texts):                
     detected_emotions = []
@@ -156,7 +179,8 @@ def predictEmotions(list_of_texts):
         emotions = model.predict(np.array([(list_of_texts[i])]))
         emotional_list = [emotions[0][0], emotions[0][1], emotions[0][2], emotions[0][3], emotions[0][4], emotions[0][5]]
         detected_emotions.append(emotional_list)
-    return emotional_list
+    return detected_emotions
+
 
 # Mean of emotions of tweets in detected emotions
 def emotion_mean(detected_emotions):
@@ -166,6 +190,10 @@ def emotion_mean(detected_emotions):
 
     mean_emotions = mean_emotions / np.array([len(detected_emotions), len(detected_emotions), len(detected_emotions), len(detected_emotions), len(detected_emotions), len(detected_emotions)])
     return mean_emotions
+
+
+tweet_list_by_day = json_to_listOfTexts(json_list)
+print(wholePrediction(tweet_list_by_day))
 
 
 #print(emotion_mean(detected_emotions))
