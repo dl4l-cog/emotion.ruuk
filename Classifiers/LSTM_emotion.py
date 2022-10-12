@@ -156,7 +156,7 @@ train_ds = SparseDataset(train_data, y)
 # Define Dataloader and hyperparameters
 hidden_size = 64
 num_layers = 2
-batch_size = 128 #batchsize depends on available memory
+batch_size = 200 #batchsize depends on available memory
 train_dl = DataLoader(train_ds, batch_size, shuffle=True)
 
 def outputfix(pred_tensor, num_layers):
@@ -216,8 +216,9 @@ def fit(num_epochs, model, loss_fn, opt, train_dl):
     # Repeat for given number of epochs
     for epoch in range(num_epochs):
         # Train with batches of data
+        counter = 0
         for xb,yb in train_dl:
-            counter = 0
+            
             yb = torch.tensor(yb, dtype=torch.long) # 0. setting right dtype for loss_fn (long required)
             pred = model(xb.double()) 
             #print(pred)              # 1. Generate predictions
@@ -227,14 +228,14 @@ def fit(num_epochs, model, loss_fn, opt, train_dl):
             loss.backward()                         # 3. Compute gradients
             opt.step()                              # 4. Update parameters using gradients
             opt.zero_grad()                         # 5. Reset the gradients to zero
-            counter += 1
-            print("Batch {} finished", counter)
+            counter = counter+1
+            #print('Batch {}/{} finished'.format(counter, batch_size))
         # Print the progress
         if (epoch+1) % 1 == 0:
             print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, loss.item()))
 
 # FIT THE MODEL
-epochs = 10 #if choosing smaller batches go for less epochs
+epochs = 5 #if choosing smaller batches go for less epochs
 fit(epochs, model, loss_fn, opt, train_dl)
 torch.save(model, "model.pth")
 #model = torch.load("model700e_1e-4wd.pth")
