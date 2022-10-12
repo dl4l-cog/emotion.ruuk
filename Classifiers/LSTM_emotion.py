@@ -144,7 +144,7 @@ class SparseDataset(Dataset):
 
     def __getitem__(self, idx):
         current = self.data[idx].to_dense()
-        current = current.type(torch.DoubleTensor)
+        #current = current.to(dtype=torch.double)
         print(current.dtype)
         return  current, self.label[idx]
 
@@ -165,26 +165,29 @@ class LSTM(nn.Module):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
-        self.out_act = nn.Sigmoid()
+        self.fc1 =  nn.Linear(hidden_size, 128) #fully connected 1
+        self.fc = nn.Linear(128, output_size) #fully connected last layer
         
+        self.relu = nn.ReLU()
     def forward(self, x):
-        x = torch.tensor(x, dtype=torch.double)#x.type(torch.DoubleTensor)
+
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.double)
         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.double)
-        print(x.dtype)
-        print(h0.dtype)
+
         out, (hn, cn) = self.lstm(x, (h0, c0))
-        hn = hn.view(-1, self.hidden_size)
+        hn = hn.view(-1, self.hidden_size) #reshaping the data for Dense layer next
         out = self.relu(hn)
-        out = self.fc(out)
+        out = self.fc1(out) #first Dense
+        out = self.relu(out) #relu
+        out = self.fc(out) #Final Output
+
         return out
 
 #Initialize model
 input_size = train_data.shape[2]
 output_size = 6
 
-model = LSTM(input_size, hidden_size, num_layers, output_size)
+model = LSTM(input_size, hidden_size, num_layers, output_size).double()
 
 
 # Define loss function
@@ -204,7 +207,7 @@ def fit(num_epochs, model, loss_fn, opt, train_dl):
         # Train with batches of data
         for xb,yb in train_dl:
             yb = torch.tensor(yb, dtype=torch.long) # 0. setting right dtype for loss_fn (long required)
-            pred = model(xb)                        # 1. Generate predictions
+            pred = model(xb.double())                        # 1. Generate predictions
             loss = loss_fn(pred, yb)                # 2. Calculate loss
             loss.backward()                         # 3. Compute gradients
             opt.step()                              # 4. Update parameters using gradients
@@ -222,7 +225,8 @@ torch.save(model, "model.pth")
 
 
 # TEST THE MODEL
-pred_test = model(tst_x_tensor)
+"""
+pred_test = model(...)
 
 
 pred_percentage = pred_validation(pred_test)
@@ -235,5 +239,5 @@ f1 =  f1_score(pred_test, y_test, num_classes=6)
 print("F1-score:", f1)
 print("Precision:", p)
 print("Recall:", r)
-
+"""
 
