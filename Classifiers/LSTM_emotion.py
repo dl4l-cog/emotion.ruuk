@@ -130,7 +130,7 @@ print("Created training tensor succesfully", '\n', '\n')
 
 #Setup CUDA if available, else CPU
 print("cudNN Version", torch.backends.cudnn.version())
-device = "cpu" if torch.cuda.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
 
 
@@ -151,17 +151,17 @@ class SparseDataset(Dataset):
         return  current, self.label[idx]
 
 train_ds = SparseDataset(train_data, y)
-
+test_ds = SparseDataset(test_data, y_test)
 
 # Define Dataloader and hyperparameters
 hidden_size = 64
 num_layers = 2
-batch_size = 200 #batchsize depends on available memory
+batch_size = 100 #batchsize depends on available memory
 train_dl = DataLoader(train_ds, batch_size, shuffle=True)
 
 def outputfix(pred_tensor, num_layers):
 
-    out = torch.zeros(6)
+    out = torch.zeros(6).to(device=device)
     for i in range(1, pred_tensor.shape[0]):
         idx = i
         if i % num_layers != 0:
@@ -175,15 +175,15 @@ class LSTM(nn.Module):
 
         self.num_layers = num_layers
         self.hidden_size = hidden_size
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc1 =  nn.Linear(hidden_size, 128) #fully connected 1
-        self.fc = nn.Linear(128, output_size) #fully connected last layer
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, device=device)
+        self.fc1 =  nn.Linear(hidden_size, 128, device=device) #fully connected 1
+        self.fc = nn.Linear(128, output_size, device=device) #fully connected last layer
         
         self.relu = nn.ReLU()
     def forward(self, x):
 
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.double)
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.double)
+        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.double, device=device)
+        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.double, device=device)
 
         out, (hn, cn) = self.lstm(x, (h0, c0))
         hn = hn.view(-1, self.hidden_size) #reshaping the data for Dense layer next
@@ -198,7 +198,7 @@ class LSTM(nn.Module):
 input_size = train_data.shape[2]
 output_size = 6
 
-model = LSTM(input_size, hidden_size, num_layers, output_size).double()
+model = LSTM(input_size, hidden_size, num_layers, output_size).double().to(device=device)
 
 
 # Define loss function
@@ -229,7 +229,7 @@ def fit(num_epochs, model, loss_fn, opt, train_dl):
             opt.step()                              # 4. Update parameters using gradients
             opt.zero_grad()                         # 5. Reset the gradients to zero
             counter = counter+1
-            #print('Batch {}/{} finished'.format(counter, batch_size))
+            print('Batch {}/{} finished'.format(counter, len(train_dl)/batch_size))
         # Print the progress
         if (epoch+1) % 1 == 0:
             print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, loss.item()))
@@ -243,7 +243,7 @@ torch.save(model, "model.pth")
 
 # TEST THE MODEL
 
-pred_test = outputfix(model(test_data), num_layers)
+pred_test = outputfix(model(test_ds), num_layers)
 
 
 pred_percentage = pred_validation(pred_test)
