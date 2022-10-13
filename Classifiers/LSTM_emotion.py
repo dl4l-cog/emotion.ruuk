@@ -77,7 +77,9 @@ def word_lengths_tolist(texts):
     return word_lengths
 
 word_lengths = word_lengths_tolist(train_text)
+test_word_lengths = word_lengths_tolist(test_text)
 maxlen = max(word_lengths)
+test_maxlen = max(test_word_lengths) 
 
 
 # Tensor with dense dim(1) + sparse dim(2)
@@ -119,6 +121,8 @@ except:
     train_data = to_3d_sparse_tensor(train_text, word_lengths, maxlen)
     torch.save(train_data, 'train_tensor.pt')
 
+test_data = to_3d_sparse_tensor(test_text, test_word_lengths, test_maxlen)
+
 #Making y which is the tensor of emotion labels
 y = torch.tensor(train_label)
 y_test = torch.tensor(test_label)
@@ -144,8 +148,6 @@ class SparseDataset(Dataset):
 
     def __getitem__(self, idx):
         current = self.data[idx].to_dense()
-        current = current.type(torch.DoubleTensor)
-        print(current.dtype)
         return  current, self.label[idx]
 
 train_ds = SparseDataset(train_data, y)
@@ -153,9 +155,18 @@ train_ds = SparseDataset(train_data, y)
 
 # Define Dataloader and hyperparameters
 hidden_size = 64
-num_layers = 4
-batch_size = 100 #batchsize depends on available memory
+num_layers = 2
+batch_size = 200 #batchsize depends on available memory
 train_dl = DataLoader(train_ds, batch_size, shuffle=True)
+
+def outputfix(pred_tensor, num_layers):
+
+    out = torch.zeros(6)
+    for i in range(1, pred_tensor.shape[0]):
+        idx = i
+        if i % num_layers != 0:
+            out = torch.vstack((out, pred_tensor[i-1:i:]))
+    return out[1:]
 
 # Define model
 class LSTM(nn.Module):
@@ -165,26 +176,29 @@ class LSTM(nn.Module):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
-        self.out_act = nn.Sigmoid()
+        self.fc1 =  nn.Linear(hidden_size, 128) #fully connected 1
+        self.fc = nn.Linear(128, output_size) #fully connected last layer
         
+        self.relu = nn.ReLU()
     def forward(self, x):
-        x = torch.tensor(x, dtype=torch.double)#x.type(torch.DoubleTensor)
+
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.double)
         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.double)
-        print(x.dtype)
-        print(h0.dtype)
+
         out, (hn, cn) = self.lstm(x, (h0, c0))
-        hn = hn.view(-1, self.hidden_size)
+        hn = hn.view(-1, self.hidden_size) #reshaping the data for Dense layer next
         out = self.relu(hn)
-        out = self.fc(out)
+        out = self.fc1(out) #first Dense
+        out = self.relu(out) #relu
+        out = self.fc(out) #Final Output
+
         return out
 
 #Initialize model
 input_size = train_data.shape[2]
 output_size = 6
 
-model = LSTM(input_size, hidden_size, num_layers, output_size)
+model = LSTM(input_size, hidden_size, num_layers, output_size).double()
 
 
 # Define loss function
@@ -202,31 +216,38 @@ def fit(num_epochs, model, loss_fn, opt, train_dl):
     # Repeat for given number of epochs
     for epoch in range(num_epochs):
         # Train with batches of data
+        counter = 0
         for xb,yb in train_dl:
+            
             yb = torch.tensor(yb, dtype=torch.long) # 0. setting right dtype for loss_fn (long required)
-            pred = model(xb)                        # 1. Generate predictions
+            pred = model(xb.double()) 
+            #print(pred)              # 1. Generate predictions
+            pred = outputfix(pred, num_layers)  
+            #print(pred)                                       
             loss = loss_fn(pred, yb)                # 2. Calculate loss
             loss.backward()                         # 3. Compute gradients
             opt.step()                              # 4. Update parameters using gradients
             opt.zero_grad()                         # 5. Reset the gradients to zero
-        
+            counter = counter+1
+            #print('Batch {}/{} finished'.format(counter, batch_size))
         # Print the progress
         if (epoch+1) % 1 == 0:
             print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, loss.item()))
 
 # FIT THE MODEL
-epochs = 700 #if choosing smaller batches go for less epochs
+epochs = 5 #if choosing smaller batches go for less epochs
 fit(epochs, model, loss_fn, opt, train_dl)
 torch.save(model, "model.pth")
 #model = torch.load("model700e_1e-4wd.pth")
 
 
 # TEST THE MODEL
-pred_test = model(tst_x_tensor)
+
+pred_test = outputfix(model(test_data), num_layers)
 
 
 pred_percentage = pred_validation(pred_test)
-print(pred_percentage)
+#print(pred_percentage)
 
 # Print results
 p  = precision(pred_test, y_test, num_classes=6)
