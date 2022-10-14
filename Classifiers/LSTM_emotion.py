@@ -159,9 +159,9 @@ num_layers = 2
 batch_size = 120 #batchsize depends on available memory
 train_dl = DataLoader(train_ds, batch_size, shuffle=True)
 
-def outputfix(pred_tensor, num_layers):
+def outputfix(pred_tensor, num_layers, current_device=device):
 
-    out = torch.zeros(6).to(device=device)
+    out = torch.zeros(6).to(current_device)
     for i in range(1, pred_tensor.shape[0]):
         idx = i
         if i % num_layers != 0:
@@ -170,7 +170,7 @@ def outputfix(pred_tensor, num_layers):
 
 # Define model
 class LSTM(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, output_size):
+    def __init__(self, input_size, hidden_size, num_layers, output_size, device=device):
         super(LSTM,self).__init__()
 
         self.num_layers = num_layers
@@ -240,24 +240,30 @@ fit(epochs, model, loss_fn, opt, train_dl)
 torch.save(model, "model.pth")
 #model = torch.load("model700e_1e-4wd.pth")
 
-
+#Setting memory of GPU free
+torch.cuda.empty_cache()
 # TEST THE MODEL
-batch_size = 1
+
+batch_size = 100
+test_ds = SparseDataset(test_data, y_test)
 test_dl = DataLoader(test_ds, batch_size=batch_size, shuffle=True)
 #pred_test = outputfix(model(train_dl), num_layers)
 
 def text_dl_to_predictions():
-    test_preds = torch.zeros(6)#.to(device=device)
-    for xb,_ in train_dl:
-        test_batch = outputfix(model(xb.double()), num_layers).to(device="cpu")
+    test_preds = torch.zeros(6).to(device=device)
+    for xb,_ in test_dl:
+        test_batch = outputfix(model(xb.double()), num_layers, current_device=device)
         test_preds = torch.vstack((test_preds, test_batch))
     return test_preds[1:]
-pred_test = text_dl_to_predictions()
-pred_percentage = pred_validation(pred_test)
+
+with torch.no_grad():
+    pred_test = text_dl_to_predictions()
+#pred_percentage = pred_validation(pred_test)
 
 #print(pred_percentage)
 
 # Print results
+y_test = y_test.to(device=device)
 p  = precision(pred_test, y_test, num_classes=6)
 r  =    recall(pred_test, y_test, num_classes=6)
 f1 =  f1_score(pred_test, y_test, num_classes=6)
