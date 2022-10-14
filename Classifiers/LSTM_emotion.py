@@ -156,7 +156,7 @@ test_ds = SparseDataset(test_data, y_test)
 # Define Dataloader and hyperparameters
 hidden_size = 64
 num_layers = 2
-batch_size = 100 #batchsize depends on available memory
+batch_size = 120 #batchsize depends on available memory
 train_dl = DataLoader(train_ds, batch_size, shuffle=True)
 
 def outputfix(pred_tensor, num_layers):
@@ -229,24 +229,32 @@ def fit(num_epochs, model, loss_fn, opt, train_dl):
             opt.step()                              # 4. Update parameters using gradients
             opt.zero_grad()                         # 5. Reset the gradients to zero
             counter = counter+1
-            print('Batch {}/{} finished'.format(counter, len(train_dl)/batch_size))
+            print('Batch {}/{} finished'.format(counter, len(train_dl)))
         # Print the progress
         if (epoch+1) % 1 == 0:
             print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, loss.item()))
 
 # FIT THE MODEL
-epochs = 5 #if choosing smaller batches go for less epochs
+epochs = 1 #if choosing smaller batches go for less epochs
 fit(epochs, model, loss_fn, opt, train_dl)
 torch.save(model, "model.pth")
 #model = torch.load("model700e_1e-4wd.pth")
 
 
 # TEST THE MODEL
+batch_size = 1
+test_dl = DataLoader(test_ds, batch_size=batch_size, shuffle=True)
+#pred_test = outputfix(model(train_dl), num_layers)
 
-pred_test = outputfix(model(test_ds), num_layers)
-
-
+def text_dl_to_predictions():
+    test_preds = torch.zeros(6)#.to(device=device)
+    for xb,_ in train_dl:
+        test_batch = outputfix(model(xb.double()), num_layers).to(device="cpu")
+        test_preds = torch.vstack((test_preds, test_batch))
+    return test_preds[1:]
+pred_test = text_dl_to_predictions()
 pred_percentage = pred_validation(pred_test)
+
 #print(pred_percentage)
 
 # Print results
