@@ -1,0 +1,10 @@
+# run this loop in terminal
+while read f; do
+	cat "${f}"-??.txt > ${f}.txt
+	rm "${f}"-??.txt
+done < filelist.txt
+
+# run this command to get 5000 tweets per day
+for file in 2022-*/*; do
+	shuf -n 5000 $file >> 5000-tweets-per-day.txt
+done
