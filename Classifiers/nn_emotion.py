@@ -18,6 +18,7 @@ from torch.utils.data import Dataset
 from torchmetrics.functional import f1_score
 from torchmetrics.functional import precision
 from torchmetrics.functional import recall
+from torchsummary import summary
 #from sklearn.preprocessing import LabelBinarizer
 
 
@@ -142,7 +143,7 @@ def text_to_sparse(list_of_text):
 
 trn_x_tensor = text_to_sparse(train_text)
 #tst_x_tensor = text_to_sparse(test_text)
-tst_x_tensor = text_to_sparse(sample)
+tst_x_tensor = text_to_sparse(test_text)
 sample_x_tensor = text_to_list_of_sentences(sample)
 #Making y which is the tensor of emotion labels
 y = torch.tensor(train_label)
@@ -183,12 +184,13 @@ train_ds = SparseDataset(trn_x, y)
 # Define Dataloader
 batch_size = 1000 #batchsize depends on available memory
 train_dl = DataLoader(train_ds, batch_size, shuffle=True)
-
+input_size = trn_x_tensor.shape[1]
+output_size = 6
 # Define model
 class Net(nn.Module):
     def __init__(self):
         super(Net,self).__init__()
-        self.fc1 = nn.Linear(trn_x_tensor.shape[1] , 1024)
+        self.fc1 = nn.Linear(input_size , 1024)
         self.relu1 = nn.ReLU()
         self.dout1 = nn.Dropout(0.25)
         self.fc2 = nn.Linear(1024, 2048)
@@ -202,7 +204,7 @@ class Net(nn.Module):
         self.dout4 = nn.Dropout(0.2)
         self.fc5 = nn.Linear(1024, 64)
         self.prelu = nn.PReLU(1)
-        self.out = nn.Linear(64, 6)
+        self.out = nn.Linear(64, output_size)
         self.out_act = nn.Sigmoid()
         
     def forward(self, input_):
@@ -244,6 +246,7 @@ def fit(num_epochs, model, loss_fn, opt, train_dl):
     for epoch in range(num_epochs):
         # Train with batches of data
         for xb,yb in train_dl:
+
             yb = torch.tensor(yb, dtype=torch.long) # 0. setting right dtype for loss_fn (long required)
             pred = model(xb)                        # 1. Generate predictions
             loss = loss_fn(pred, yb)                # 2. Calculate loss
@@ -264,19 +267,21 @@ model = torch.load("model700e_1e-4wd.pth")
 
 # TEST THE MODEL
 pred_test = model(tst_x_tensor)
-pred_sample = model(sample_x_tensor)
-pred_percentage = pred_validation(pred_sample)
+#pred_sample = model(sample_x_tensor)
+#pred_percentage = pred_validation(pred_sample)
 #print(pred_percentage)
-final_verdict = sum_over_parts(pred_percentage)
+#final_verdict = sum_over_parts(pred_percentage)
 #print(final_verdict)
-print('Sadness: {} || Joy: {} || Love: {} || Anger: {} || Fear: {} || Suprise: {}'.format(final_verdict[0], final_verdict[1], final_verdict[2], final_verdict[3], final_verdict[4], final_verdict[5]))
-"""
+#print('Sadness: {} || Joy: {} || Love: {} || Anger: {} || Fear: {} || Suprise: {}'.format(final_verdict[0], final_verdict[1], final_verdict[2], final_verdict[3], final_verdict[4], final_verdict[5]))
+
 # Print results
+
+summary(model, tst_x_tensor.shape , 2, device="cpu")
 p  = precision(pred_test, y_test, num_classes=6)
 r  =    recall(pred_test, y_test, num_classes=6)
 f1 =  f1_score(pred_test, y_test, num_classes=6)
 print("F1-score:", f1)
 print("Precision:", p)
 print("Recall:", r)
-"""
+
 

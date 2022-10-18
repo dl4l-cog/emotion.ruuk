@@ -18,6 +18,7 @@ from torch.utils.data import Dataset
 from torchmetrics.functional import f1_score
 from torchmetrics.functional import precision
 from torchmetrics.functional import recall
+from torchsummary import summary
 #from sklearn.preprocessing import LabelBinarizer
 
 
@@ -154,7 +155,7 @@ train_ds = SparseDataset(train_data, y)
 test_ds = SparseDataset(test_data, y_test)
 
 # Define Dataloader and hyperparameters
-hidden_size = 64
+hidden_size = 20
 num_layers = 2
 batch_size = 120 #batchsize depends on available memory
 train_dl = DataLoader(train_ds, batch_size, shuffle=True)
@@ -176,8 +177,9 @@ class LSTM(nn.Module):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, device=device)
-        self.fc1 =  nn.Linear(hidden_size, 128, device=device) #fully connected 1
-        self.fc = nn.Linear(128, output_size, device=device) #fully connected last layer
+        self.fc2 =  nn.Linear(hidden_size, 128, device=device) #fully connected 1
+        self.fc1 =  nn.Linear(128, 64, device=device)
+        self.fc = nn.Linear(64, output_size, device=device) #fully connected last layer
         
         self.relu = nn.ReLU()
     def forward(self, x):
@@ -188,7 +190,9 @@ class LSTM(nn.Module):
         out, (hn, cn) = self.lstm(x, (h0, c0))
         hn = hn.view(-1, self.hidden_size) #reshaping the data for Dense layer next
         out = self.relu(hn)
-        out = self.fc1(out) #first Dense
+        out = self.fc2(out) #first Dense
+        out = self.relu(out) #relu
+        out = self.fc1(out) #second Dense
         out = self.relu(out) #relu
         out = self.fc(out) #Final Output
 
@@ -229,7 +233,7 @@ def fit(num_epochs, model, loss_fn, opt, train_dl):
             opt.step()                              # 4. Update parameters using gradients
             opt.zero_grad()                         # 5. Reset the gradients to zero
             counter = counter+1
-            print('Batch {}/{} finished'.format(counter, len(train_dl)))
+            #print('Batch {}/{} finished'.format(counter, len(train_dl)))
         # Print the progress
         if (epoch+1) % 1 == 0:
             print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, num_epochs, loss.item()))
@@ -258,6 +262,7 @@ def text_dl_to_predictions():
 
 with torch.no_grad():
     pred_test = text_dl_to_predictions()
+    #summary(model, test_data.shape , batch_size=batch_size, device=device)
 #pred_percentage = pred_validation(pred_test)
 
 #print(pred_percentage)
