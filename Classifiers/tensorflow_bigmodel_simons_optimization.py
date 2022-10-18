@@ -1,56 +1,53 @@
 #!/usr/bin/env python3
-# run using 'python baseline.py'
-"""A simple B/I segmenter using RNNs as starter code / baseline for a3.
-"""
 import numpy as np
 import tensorflow as tf
 from datasets import load_dataset
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import layers
-from tensorflow.keras import losses
-from tensorflow.keras import utils
-from tensorflow.keras.layers import TextVectorization
 import json
 from keras import backend as K
 import re
 
 
-
+# load Datasets
 train = load_dataset('emotion', split='train')
 test  = load_dataset('emotion', split='test')
 
 # Convert Huggingfacedata into Tensorflow Data
-train_dataset = train.to_tf_dataset(columns=["text"], label_cols=["label"],  batch_size = 64)
+train_dataset = train.to_tf_dataset(columns=["text"], label_cols=["label"], batch_size = 64)
 test_dataset = test.to_tf_dataset(columns=["text"], label_cols=["label"], batch_size = 64)
 
 
+#####################################################################
 
-######################## EVALUATION #######################
+
+# define evaluation functions
+#--------------------------------------------------------------------
+
 def recall_m(y_true, y_pred):
-    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    true_positives = K.sum( K.round( K.clip( y_true * y_pred, 0, 1)))
+    possible_positives = K.sum( K.round( K.clip( y_true, 0, 1)))
     recall = true_positives / (possible_positives + K.epsilon())
     return recall
 
 def precision_m(y_true, y_pred):
-    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    true_positives = K.sum( K.round( K.clip( y_true * y_pred, 0, 1)))
+    predicted_positives = K.sum( K.round( K.clip( y_pred, 0, 1)))
     precision = true_positives / (predicted_positives + K.epsilon())
     return precision
 
 def f1_m(y_true, y_pred):
     precision = precision_m(y_true, y_pred)
     recall = recall_m(y_true, y_pred)
-    return 2*((precision*recall)/(precision+recall+K.epsilon()))
-###################################################################
+    return 2 * ((precision*recall) / (precision + recall + K.epsilon()))
 
+
+###################################################################
 
 
 # Select the 10000 most frequent words from the training data and give each word a number
 VOCAB_SIZE = 4000
-encoder = tf.keras.layers.TextVectorization(
-    max_tokens=VOCAB_SIZE)
+encoder = tf.keras.layers.TextVectorization(max_tokens=VOCAB_SIZE)
 encoder.adapt(train_dataset.map(lambda text, label: text))
 # Vocab is the dictionary of the 10000 most frequent words
 vocab = np.array(encoder.get_vocabulary())
@@ -79,17 +76,18 @@ model.compile(
     metrics=['acc', f1_m, precision_m, recall_m]
 )
 
-
 model.summary()
-# Training the model
 
-history = model.fit(train_dataset, epochs=10,
-                    validation_data=test_dataset,
-                    validation_steps=30)
-# Saving the model so it does'nt have to be trained every time
+# Training the model
+EPOCHS  = 10
+history = model.fit(train_dataset, epochs=EPOCHS,
+                    validation_data=test_dataset, validation_steps=30)
+
+# Saving the model so it doesn't have to be trained every time
 model.save("model_keras_big")
 
-
+# print evaluation results
+#--------------------------------------------------------------------
 loss, accuracy, f1_score, precision, recall = model.evaluate(test_dataset)
 print('Test Loss:', loss)
 print('Test Accuracy:', accuracy)
