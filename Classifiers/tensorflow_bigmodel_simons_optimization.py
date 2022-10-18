@@ -76,14 +76,14 @@ model = tf.keras.Sequential([
 model.compile(
     loss='sparse_categorical_crossentropy',
     optimizer='adam',
-    metrics=['acc', f1_m,precision_m, recall_m]
+    metrics=['acc', f1_m, precision_m, recall_m]
 )
 
 
 model.summary()
 # Training the model
 
-history = model.fit(train_dataset, epochs=5,
+history = model.fit(train_dataset, epochs=10,
                     validation_data=test_dataset,
                     validation_steps=30)
 # Saving the model so it does'nt have to be trained every time
@@ -96,92 +96,3 @@ print('Test Accuracy:', accuracy)
 print('Test F1', f1_score)
 print('precision', precision)
 print('recall', recall)
-
-
-
-# Sample Texts to test the model
-sample_text = ('''Im so sick of this bullshit''')
-predictions = model.predict(np.array([sample_text]))
-#metric = tfa.metrics.F1Score(num_classes=6, threshold=0.5)
-print('Sadness: {:.4f} || Joy: {:.4f} || Love: {:.4f} || Anger: {:.4f} || Fear: {:.4f} || Suprise: {:.4f}'.format(predictions[0][0], predictions[0][1], predictions[0][2], predictions[0][3], predictions[0][4], predictions[0][5]))
-
-def text_to_list_of_sentences(text_list):
-    text_list = text_list.split('.')
-    return text_list
-
-
-
-## Sums ##
-def sum_over_parts(list_of_parts):
-    sums_of_emotions = []
-    for emotion in range(6):
-        sum = 0
-        for part in list_of_parts:
-            sum = sum + part[emotion]
-        sums_of_emotions.append(sum)
-    overall_sum = 0
-    for sum in sums_of_emotions:
-        overall_sum = overall_sum + sum
-    for i in range(6):
-        sums_of_emotions[i] = round(sums_of_emotions[i] / overall_sum, 4)
-            
-    return sums_of_emotions
-
-#print(sum_over_parts(dectected_emotions))
-# detected emotions ist Matrix mit evaluierten Emotionen
-# 1 = Sadness, 2 = Joy, 3 = Love, 4 = Anger, 5 = Fear, 6 = Suprise
-
-# Tweets einlesen
-
-with open('test.jsonl', 'r') as json_file:
-    json_list = list(json_file)
-
-
-# Wandelt Json in Liste an Texten um
-def json_to_listOfTexts(json_list):        
-    tweet_text_list = []
-    for tweets in json_list:
-        result = json.loads(tweets)
-        print(result)
-        removeUrl(result)
-        removeHashtag(result)
-        removeAT(result)
-        if result["lang"] == "en" and islongerthanthreewords(result) and not(result["is_quote_status"]) and not(isReply(result)): 
-            tweet_text_list.append(result["full_text"])
-
-def removeUrl(tweet):
-    tweet["full_text"] = re.sub(r" http\S+", "", tweet["full_text"])
-
-def removeHashtag(tweet):
-    tweet["full_text"] = re.sub(r" #\S+", "", tweet["full_text"])
-
-def removeAT(tweet):
-    tweet["full_text"] = re.sub(r" @\S+", "", tweet["full_text"])
-
-def islongerthanthreewords(tweet):
-    list_of_words = tweet["full_text"].split()
-    return len(list_of_words) > 3
-
-def isReply(tweet):
-    return tweet["in_reply_to_status_id"] is not None
-
-def predictEmotions(list_of_texts):                
-    detected_emotions = []
-    for i in range(len(list_of_texts)):
-    #for emotional_text in emotion_data:
-        emotions = model.predict(np.array([(list_of_texts[i])]))
-        emotional_list = [emotions[0][0], emotions[0][1], emotions[0][2], emotions[0][3], emotions[0][4], emotions[0][5]]
-        detected_emotions.append(emotional_list)
-    return emotional_list
-
-# Mean of emotions of tweets in detected emotions
-def emotion_mean(detected_emotions):
-    mean_emotions = np.array([0, 0, 0, 0, 0, 0])
-    for onetweet in detected_emotions:
-        mean_emotions = mean_emotions + np.array(onetweet) 
-
-    mean_emotions = mean_emotions / np.array([len(detected_emotions), len(detected_emotions), len(detected_emotions), len(detected_emotions), len(detected_emotions), len(detected_emotions)])
-    return mean_emotions
-
-
-#print(emotion_mean(detected_emotions))

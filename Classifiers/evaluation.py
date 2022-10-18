@@ -3,17 +3,36 @@ import tensorflow as tf
 import json
 import re
 import csv
+from keras import backend as K
 from dateutil.parser import parse as parse_dt
 from datetime import datetime
 
-# Loading the Model
+# LOADING THE MODEL
 #--------------------------------------------------------------------
-model = tf.keras.models.load_model('Classifiers/model700e_1e-4wd.pth')
+# redefine evaluation functions
+def recall_m(y_true, y_pred):
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    recall = true_positives / (possible_positives + K.epsilon())
+    return recall
+
+def precision_m(y_true, y_pred):
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    precision = true_positives / (predicted_positives + K.epsilon())
+    return precision
+
+def f1_m(y_true, y_pred):
+    precision = precision_m(y_true, y_pred)
+    recall = recall_m(y_true, y_pred)
+    return 2*((precision*recall)/(precision+recall+K.epsilon()))
+
+model = tf.keras.models.load_model('model_keras_big', custom_objects = {'f1': f1_m, 'precision': precision_m, 'recall': recall_m})
 
 model.compile(
     loss='sparse_categorical_crossentropy',
     optimizer='adam',
-    metrics=['accuracy']
+    metrics=['acc', f1_m, precision_m, recall_m]
 )
 
 model.summary()
@@ -107,7 +126,7 @@ def json_to_listOfTexts(json_list):
             one_day_of_tweets = []
             date = parse_dt(onetweet["created_at"]).date()
             print(date) # print date for progress and sanity check
-        if onetweet["lang"] == "en" and islongerthanthreewords(onetweet) and not isReply(onetweet): 
+        if onetweet["lang"] == "en" and islongerthanthreewords(onetweet) and not isReply(onetweet):
             one_day_of_tweets.append(onetweet["full_text"])
     return tweet_list_by_day
 
