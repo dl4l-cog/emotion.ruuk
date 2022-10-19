@@ -199,9 +199,9 @@ class Net(nn.Module):
         self.fc3 = nn.Linear(2048, 1024)
         self.relu3 = nn.ReLU()
         self.dout3 = nn.Dropout(0.2)
-        self.fc4 = nn.Linear(1024, 1024)
-        self.relu4 = nn.ReLU()
-        self.dout4 = nn.Dropout(0.2)
+        #self.fc4 = nn.Linear(1024, 1024)
+        #self.relu4 = nn.ReLU()
+        #self.dout4 = nn.Dropout(0.2)
         self.fc5 = nn.Linear(1024, 64)
         self.prelu = nn.PReLU(1)
         self.out = nn.Linear(64, output_size)
@@ -275,13 +275,49 @@ pred_test = model(tst_x_tensor)
 #print('Sadness: {} || Joy: {} || Love: {} || Anger: {} || Fear: {} || Suprise: {}'.format(final_verdict[0], final_verdict[1], final_verdict[2], final_verdict[3], final_verdict[4], final_verdict[5]))
 
 # Print results
+def multilabel_to_binary(y, label):
+    binary_label = []
+    for l in y:
+        if l == label:
+            binary_label.append(1)
+        else:
+            binary_label.append(0)
+    return torch.tensor(binary_label)
+
+
+def multipred_to_binary(preds, label):
+    list_of_rows = []
+    for pred in preds:
+        row = torch.zeros(2)
+        z = torch.mean(pred) - (pred[label])/6
+        row[0] = z
+        row[1] = pred[label]
+        list_of_rows.append(row)
+    return torch.vstack(list_of_rows)
+
+   
 
 summary(model, tst_x_tensor.shape , 2, device="cpu")
 p  = precision(pred_test, y_test, num_classes=6)
 r  =    recall(pred_test, y_test, num_classes=6)
 f1 =  f1_score(pred_test, y_test, num_classes=6)
-print("F1-score:", f1)
-print("Precision:", p)
-print("Recall:", r)
+#print("F1-score:", f1)
+#print("Precision:", p)
+#print("Recall:", r)
+sad_preds = multipred_to_binary(pred_test, 0)
+joy_preds = pred_test[:, :1]
+love_preds = pred_test[:, :2]
+anger_preds = pred_test[:, :3]
+fear_preds = pred_test[:, :4]
+suprise_preds = pred_test[:, :5]
 
+sad_y = multilabel_to_binary(y_test, 0)
+joy_y = multilabel_to_binary(y_test, 1)
+love_y = multilabel_to_binary(y_test, 2)
+anger_y = multilabel_to_binary(y_test, 3)
+fear_y = multilabel_to_binary(y_test, 4)
+suprise_y = multilabel_to_binary(y_test, 5)
+
+f1_sad = f1_score(sad_preds, sad_y, num_classes=2)
+print(f1_sad)
 
