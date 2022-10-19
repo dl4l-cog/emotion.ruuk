@@ -15,9 +15,10 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
-from torchmetrics.functional import f1_score
+from torchmetrics import F1Score
 from torchmetrics.functional import precision
 from torchmetrics.functional import recall
+#from torchmetrics.classification import BinaryF1Score
 from torchsummary import summary
 #from sklearn.preprocessing import LabelBinarizer
 
@@ -289,35 +290,53 @@ def multipred_to_binary(preds, label):
     list_of_rows = []
     for pred in preds:
         row = torch.zeros(2)
-        z = torch.mean(pred) - (pred[label])/6
+        z = torch.mean(pred) - (pred[label])
         row[0] = z
         row[1] = pred[label]
         list_of_rows.append(row)
     return torch.vstack(list_of_rows)
 
-   
+def mulltipred_to_metric_format(preds):
+    pred_labels = torch.zeros(len(test_text))
+    for i in range(len(test_text)):
+        pred_labels[i] = int(torch.argmax(pred_test[i]))
+    return pred_labels
+
 
 summary(model, tst_x_tensor.shape , 2, device="cpu")
 p  = precision(pred_test, y_test, num_classes=6)
 r  =    recall(pred_test, y_test, num_classes=6)
-f1 =  f1_score(pred_test, y_test, num_classes=6)
+#f1 =  F1Score(pred_test, y_test, num_classes=6)
 #print("F1-score:", f1)
 #print("Precision:", p)
 #print("Recall:", r)
-sad_preds = multipred_to_binary(pred_test, 0)
-joy_preds = pred_test[:, :1]
-love_preds = pred_test[:, :2]
-anger_preds = pred_test[:, :3]
-fear_preds = pred_test[:, :4]
-suprise_preds = pred_test[:, :5]
+with torch.no_grad():
+    f1 = F1Score(num_classes=2)
+    multi_f1 = F1Score(num_classes=6)
+    preds_whole = mulltipred_to_metric_format(pred_test)
+    sad_preds = multipred_to_binary(pred_test, 0)
+    joy_preds = multipred_to_binary(pred_test, 1)
+    love_preds = multipred_to_binary(pred_test, 2)
+    anger_preds = multipred_to_binary(pred_test, 3)
+    fear_preds = multipred_to_binary(pred_test, 4)
+    suprise_preds = multipred_to_binary(pred_test, 5)
 
-sad_y = multilabel_to_binary(y_test, 0)
-joy_y = multilabel_to_binary(y_test, 1)
-love_y = multilabel_to_binary(y_test, 2)
-anger_y = multilabel_to_binary(y_test, 3)
-fear_y = multilabel_to_binary(y_test, 4)
-suprise_y = multilabel_to_binary(y_test, 5)
+    sad_y = multilabel_to_binary(y_test, 0)
+    joy_y = multilabel_to_binary(y_test, 1)
+    love_y = multilabel_to_binary(y_test, 2)
+    anger_y = multilabel_to_binary(y_test, 3)
+    fear_y = multilabel_to_binary(y_test, 4)
+    suprise_y = multilabel_to_binary(y_test, 5)
 
-f1_sad = f1_score(sad_preds, sad_y, num_classes=2)
-print(f1_sad)
-
+    f1_sad = f1(sad_preds, sad_y)
+    f1_joy = f1(joy_preds, joy_y)
+    f1_love = f1(love_preds, love_y)
+    f1_anger = f1(anger_preds, anger_y)
+    f1_fear = f1(fear_preds, fear_y)
+    f1_suprise = f1(suprise_preds, suprise_y)
+    #f1_whole = multi_f1(preds_whole, y_test)
+    f1s = [f1_sad, f1_joy, f1_love, f1_anger, f1_fear, f1_suprise]
+    #print("F1-score:", f1)
+    print(f1s)
+    print(preds_whole)
+    print(f1_whole)
