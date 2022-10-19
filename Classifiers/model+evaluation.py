@@ -6,8 +6,16 @@ import numpy as np
 import tensorflow as tf
 from datasets import load_dataset
 from dateutil.parser import parse as parse_dt
-from datetime import datetime
 from keras import backend as K
+
+
+# MAGIC NUMBERS
+#--------------------------------------------------------------------
+EPOCHS = 5
+VOCAB_SIZE = 4000
+
+
+#####################################################################
 
 
 # load Datasets
@@ -47,7 +55,6 @@ def f1_m(y_true, y_pred):
 
 
 # Select the 10000 most frequent words from the training data and give each word a number
-VOCAB_SIZE = 4000
 encoder = tf.keras.layers.TextVectorization(max_tokens=VOCAB_SIZE)
 encoder.adapt(train_dataset.map(lambda text, label: text))
 # Vocab is the dictionary of the 10000 most frequent words
@@ -80,7 +87,6 @@ model.compile(
 model.summary()
 
 # Training the model
-EPOCHS = 1
 model.fit(train_dataset, epochs=EPOCHS,
           validation_data=test_dataset, validation_steps=30)
 
@@ -90,6 +96,7 @@ model.save('model')
 # print evaluation results
 #--------------------------------------------------------------------
 loss, accuracy, f1_score, precision, recall = model.evaluate(test_dataset)
+print('\n')
 print(f'Test Loss:\t{loss:.3f}')
 print(f'Test Acc:\t{accuracy:.3f}')
 print(f'Test F1:\t{f1_score:.3f}')
@@ -169,10 +176,10 @@ def predictEmotions(list_of_texts):
     # for emotional_text in emotion_data:
         emotions = model.predict(np.array([(list_of_texts[i])]), verbose=0)
         print('Predicting tweet #%d of %d\r' % (i, len(list_of_texts)), end="")
+
         emotional_list = [emotions[0][0], emotions[0][1], emotions[0][2], emotions[0][3], emotions[0][4], emotions[0][5]]
         detected_emotions.append(emotional_list)
-    
-    print('\n')
+
     return detected_emotions
 
 
@@ -205,7 +212,10 @@ def json_to_listOfTexts(json_list):
     print(f"starting from {date}")
 
     for i in range(len(json_list)):
-        onetweet = removeFluff(json.loads(json_list[i]))
+        try:
+            onetweet = removeFluff(json.loads(json_list[i]))
+        except:
+            print(i, json_list[i])
         print('Current date %s\r' % (date.strftime("%Y-%m-%d")), end="") # print date for progress and sanity check
 
         # if tweet is not from current date, but newer -> create new sublist
@@ -225,8 +235,8 @@ def json_to_listOfTexts(json_list):
 
 
 # Tweets einlesen
-with open('../../Ukraine_Krieg_Tweets_head5001.jsonl', 'r') as json_file:
-    json_list = list(json_file)
+with open('../../Ukraine_Krieg_Tweets.jsonl', 'r') as json_file:
+    json_list = json_file.read().splitlines()
 
 #Tweets einlesen, filtern und predictions machen
 tweet_list_by_day = json_to_listOfTexts(json_list)
