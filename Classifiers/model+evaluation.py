@@ -11,7 +11,7 @@ from keras import backend as K
 
 # MAGIC NUMBERS
 #--------------------------------------------------------------------
-EPOCHS = 5
+EPOCHS = 10
 VOCAB_SIZE = 4000
 
 
@@ -172,11 +172,11 @@ def wholePrediction(tweet_list_by_day):
 
 def predictEmotions(list_of_texts):                
     detected_emotions = []
-    date = parse_dt(list_of_texts[i]["created_at"]).date()
     for i in range(len(list_of_texts)):
     # for emotional_text in emotion_data:
         emotions = model.predict(np.array([(list_of_texts[i])]), verbose=0)
-        print('%s: predicting tweet #%d of %d\r' % (date.strftime("%Y-%m-%d"), i, len(list_of_texts)), end="")
+        
+        print(f'predicting tweet # {i:4.0f} of {len(list_of_texts):4.0f}\r', end="")
 
         emotional_list = [emotions[0][0], emotions[0][1], emotions[0][2], emotions[0][3], emotions[0][4], emotions[0][5]]
         detected_emotions.append(emotional_list)
