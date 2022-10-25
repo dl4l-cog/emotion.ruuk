@@ -1,10 +1,6 @@
 # dl4l-cog
 
-Try to investigate emotion in connection with other variables, like age, gender, psychological state (e.g., depression), political view, ... One can train an emotion classifier, and assign emotions to texts marked for other variables as above. There are annotated corpora for most of these (and more), or it would be easier to obtain through publicly available data.
-Trying to answer questions like:
-- How does happiness change over age?
-- Do populist politicians more angry, or joyful in their speeches?
-- What emotion correlates with conditions like depression, PTSD etc, anger, sadness?
+In this project we classified tweets and news articles on the war between Ukraine and Russia according to emotions. Looking at the timelines of different emotions, we traced back certain ones that stood out to major war events. We also compared differences in emotions between different media forms. While this is only correlational data, it might still provide some interesting insight into how the war is perceived in the public eye, specifically on social media and in major news outlets.
 
 huggingface search - classifier
 https://huggingface.co/models?pipeline_tag=text-classification&sort=downloads&search=emotion
